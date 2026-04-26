@@ -178,6 +178,7 @@ public:
         consensus.DIP0024QuorumsHeight = 350;
         consensus.V19Height = 350;
         consensus.MinBIP9WarningHeight = 350 + 960; // V19 activation height + miner confirmation window
+				consensus.EvonodeHeight = 355000;
         consensus.powLimit = uint256S("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~uint256(0) >> 20
         consensus.nPowTargetTimespan = 24 * 60 * 60; // Maximus: 1 day
         consensus.nPowTargetSpacing = 72; // Maximus: 72 seconds
@@ -209,10 +210,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_MN_RR].useEHF = true;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
+        consensus.nMinimumChainWork = uint256S("00000000000000000000000000000000000000000000029141f8537c534e2a97");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00000df94c615d91d23f22f8facd46e4b06e17f4214fff88af826ef77fdac797"); // Genesis block
+        consensus.defaultAssumeValid = uint256S("0x7ce8cc72253a317c2308ae9600d5e02d7a724c3e0d2f4c72e18f6ba16b8167d1"); // 265000
 
         // AuxPoW parameters
         consensus.nAuxpowChainId = 0x0045;
@@ -296,6 +297,7 @@ public:
         checkpointData = {
             {
                 {0, uint256S("0x00000df94c615d91d23f22f8facd46e4b06e17f4214fff88af826ef77fdac797")},
+                {265000, uint256S("0x7ce8cc72253a317c2308ae9600d5e02d7a724c3e0d2f4c72e18f6ba16b8167d1")},
             }
         };
 
@@ -303,11 +305,12 @@ public:
          // TODO to be specified in a future patch.
         };
 
-        // getchaintxstats
+        // getchaintxstats 265000
+
         chainTxData = ChainTxData{
-            0,
-            0,
-            0
+            1753353369,
+            428272,
+            0.02
         };
     }
 };
@@ -350,6 +353,7 @@ public:
         consensus.DIP0024QuorumsHeight = 300;
         consensus.V19Height = 300;
         consensus.MinBIP9WarningHeight = 300 + 960; // v19 activation height + miner confirmation window
+				consensus.EvonodeHeight = 1000;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~uint256(0) >> 1
         consensus.nPowTargetTimespan = 24 * 60 * 60; // Maximus: 1 day
         consensus.nPowTargetSpacing = 36; // Maximus: 36 seconds for testnet
@@ -384,7 +388,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000100010");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x000007011c13c0a1b87c55fd6f0734a205135ada991f69da4b79d3d48e527dcd"); // Genesis block
+        consensus.defaultAssumeValid = uint256S("0x000003cd91b4da9957b3411486acbfce64a1ed961188879a024b1ab2f12aac5a"); // Genesis block
 
         // AuxPoW parameters
         consensus.nAuxpowChainId = 0x0045;
@@ -401,10 +405,10 @@ public:
         m_assumed_blockchain_size = 1;
         m_assumed_chain_state_size = 1;
 
-        genesis = CreateGenesisBlock(1729976223, 1860174, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1753600292, 3956165, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 
-        assert(consensus.hashGenesisBlock == uint256S("0x000007011c13c0a1b87c55fd6f0734a205135ada991f69da4b79d3d48e527dcd"));
+        assert(consensus.hashGenesisBlock == uint256S("0x000003cd91b4da9957b3411486acbfce64a1ed961188879a024b1ab2f12aac5a"));
         assert(genesis.hashMerkleRoot == uint256S("0x1c2da9786370d27309c45314f0137207c36b9a8a2524de63938128e40afcd427"));
 
         vFixedSeeds.clear();
@@ -452,15 +456,15 @@ public:
         nPoolMaxParticipants = 20;
         nFulfilledRequestExpireTime = 5*60; // fulfilled requests expire in 5 minutes
 
-        vSporkAddresses = {"mGVg8A4ySGsfDFpH9WeU9rH8UZQrWFcEqC"};
+        vSporkAddresses = {"mcb2Wcx4TSc8ebNJtW1QF7M6MrUXKBVG7E"};
         nMinSporkKeys = 1;
 
         std::vector<DevfeeRewardStructure> rewardStructures = {  {INT_MAX, 17}  }; // 5% dev fee
-        consensus.nDevfeePayment = DevfeePayment(rewardStructures, 1, "mVbxMkXk5a1Ra2hFt8CoaSGtp2PkL277sa");
+        consensus.nDevfeePayment = DevfeePayment(rewardStructures, 1, "mVcB7S2DPdNAYfa5Snh56VKiFFQWLpMsTh");
 
         checkpointData = {
             {
-                {0, uint256S("0x000007011c13c0a1b87c55fd6f0734a205135ada991f69da4b79d3d48e527dcd")},
+                {0, uint256S("0x000003cd91b4da9957b3411486acbfce64a1ed961188879a024b1ab2f12aac5a")},
             }
         };
 
@@ -515,6 +519,7 @@ public:
         consensus.DIP0024QuorumsHeight = 300;
         consensus.V19Height = 300;
         consensus.MinBIP9WarningHeight = 300 + 1200; // v19 activation height + miner confirmation window
+				consensus.EvonodeHeight = 2000;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~uint256(0) >> 1
         consensus.nPowTargetTimespan = 24 * 60 * 60; // Maximus: 1 day
         consensus.nPowTargetSpacing = 72; // Maximus: 72 seconds
@@ -761,6 +766,7 @@ public:
         consensus.DIP0024QuorumsHeight = 350;
         consensus.V19Height = 350;
         consensus.MinBIP9WarningHeight = 0;
+				consensus.EvonodeHeight = 200;
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"); // ~uint256(0) >> 1
         consensus.nPowTargetTimespan = 24 * 60 * 60; // Maximus: 1 day
         consensus.nPowTargetSpacing = 72; // Maximus: 72 seconds

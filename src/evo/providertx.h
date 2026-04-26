@@ -94,8 +94,7 @@ public:
         UniValue obj;
         obj.setObject();
         obj.pushKV("version", nVersion);
-        // Disable Evonodes
-        // obj.pushKV("type", ToUnderlying(nType));
+        obj.pushKV("type", ToUnderlying(nType));
         obj.pushKV("collateralHash", collateralOutpoint.hash.ToString());
         obj.pushKV("collateralIndex", (int)collateralOutpoint.n);
         obj.pushKV("service", addr.ToString(false));
@@ -183,8 +182,7 @@ public:
         UniValue obj;
         obj.setObject();
         obj.pushKV("version", nVersion);
-        // Disable Evonodes
-        // obj.pushKV("type", ToUnderlying(nType));
+        obj.pushKV("type", ToUnderlying(nType));
         obj.pushKV("proTxHash", proTxHash.ToString());
         obj.pushKV("service", addr.ToString(false));
         if (CTxDestination dest; ExtractDestination(scriptOperatorPayout, dest)) {

@@ -195,10 +195,9 @@ CDeterministicMNCPtr CDeterministicMNList::GetMNPayee(gsl::not_null<const CBlock
             if (dmn->pdmnState->nLastPaidHeight == nHeight) {
                 // We found the last MN Payee.
                 // If the last payee is an EvoNode, we need to check its consecutive payments and pay him again if needed
-                // Disable Evonodes
-                // if (dmn->nType == MnType::Evo && dmn->pdmnState->nConsecutivePayments < dmn_types::Evo.voting_weight) {
-                //     best = dmn;
-                // }
+                if (dmn->nType == MnType::Evo && dmn->pdmnState->nConsecutivePayments < dmn_types::Evo.voting_weight) {
+                    best = dmn;
+                }
             }
         });
 
@@ -236,14 +235,13 @@ std::vector<CDeterministicMNCPtr> CDeterministicMNList::GetProjectedMNPayees(gsl
             if (dmn->pdmnState->nLastPaidHeight == nHeight) {
                 // We found the last MN Payee.
                 // If the last payee is an EvoNode, we need to check its consecutive payments and pay him again if needed
-                // Disable Evonodes
-                // if (dmn->nType == MnType::Evo && dmn->pdmnState->nConsecutivePayments < dmn_types::Evo.voting_weight) {
-                //     remaining_evo_payments = dmn_types::Evo.voting_weight - dmn->pdmnState->nConsecutivePayments;
-                //     for ([[maybe_unused]] auto _ : irange::range(remaining_evo_payments)) {
-                //         result.emplace_back(dmn);
-                //         evo_to_be_skipped = dmn;
-                //     }
-                // }
+                if (dmn->nType == MnType::Evo && dmn->pdmnState->nConsecutivePayments < dmn_types::Evo.voting_weight) {
+                    remaining_evo_payments = dmn_types::Evo.voting_weight - dmn->pdmnState->nConsecutivePayments;
+                    for ([[maybe_unused]] auto _ : irange::range(remaining_evo_payments)) {
+                        result.emplace_back(dmn);
+                        evo_to_be_skipped = dmn;
+                    }
+                }
             }
         });
     }
@@ -757,10 +755,9 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, gsl::no
             }
             auto& proTx = *opt_proTx;
 
-            // Disable Evonodes
-            // if (proTx.nType == MnType::Evo && !isV19Active) {
-            //     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-payload");
-            // }
+            if (proTx.nType == MnType::Evo && !isV19Active) {
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-payload");
+            }
 
             auto dmn = std::make_shared<CDeterministicMN>(newList.GetTotalRegisteredCount(), proTx.nType);
             dmn->proTxHash = tx.GetHash();
@@ -821,10 +818,9 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, gsl::no
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-payload");
             }
 
-            // Disable Evonodes
-            // if (opt_proTx->nType == MnType::Evo && !DeploymentActiveAfter(pindexPrev, Params().GetConsensus(), Consensus::DEPLOYMENT_V19)) {
-            //     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-payload");
-            // }
+            if (opt_proTx->nType == MnType::Evo && !DeploymentActiveAfter(pindexPrev, Params().GetConsensus(), Consensus::DEPLOYMENT_V19)) {
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-payload");
+            }
 
             if (newList.HasUniqueProperty(opt_proTx->addr) && newList.GetUniquePropertyMN(opt_proTx->addr)->proTxHash != opt_proTx->proTxHash) {
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-protx-dup-addr");
@@ -965,14 +961,13 @@ bool CDeterministicMNManager::BuildNewListFromBlock(const CBlock& block, gsl::no
         // Starting from v19 and until MNRewardReallocation, EvoNodes will be paid 4 blocks in a row
         // No need to check if v19 is active, since EvoNode ProRegTxes are allowed only after v19 activation
         // Note: If the payee wasn't found in the current block that's fine
-        // Disable Evonodes
-        // if (dmn->nType == MnType::Evo && !isMNRewardReallocation) {
-        //     ++newState->nConsecutivePayments;
-        //     if (debugLogs) {
-        //         LogPrint(BCLog::MNPAYMENTS, "CDeterministicMNManager::%s -- MN %s is an EvoNode, bumping nConsecutivePayments to %d\n",
-        //                   __func__, dmn->proTxHash.ToString(), newState->nConsecutivePayments);
-        //     }
-        // }
+        if (dmn->nType == MnType::Evo) {
+            ++newState->nConsecutivePayments;
+            if (debugLogs) {
+                LogPrint(BCLog::MNPAYMENTS, "CDeterministicMNManager::%s -- MN %s is an EvoNode, bumping nConsecutivePayments to %d\n",
+                          __func__, dmn->proTxHash.ToString(), newState->nConsecutivePayments);
+            }
+        }
         newList.UpdateMN(payee->proTxHash, newState);
         if (debugLogs) {
             dmn = newList.GetMN(payee->proTxHash);
@@ -1689,11 +1684,11 @@ bool CheckProUpServTx(const CTransaction& tx, gsl::not_null<const CBlockIndex*> 
     }
 
     // don't allow updating to platformNodeIds already used by other EvoNodes
-    if (opt_ptx->nType == MnType::Evo) {
-        if (mnList.HasUniqueProperty(opt_ptx->platformNodeID)  && mnList.GetUniquePropertyMN(opt_ptx->platformNodeID)->proTxHash != opt_ptx->proTxHash) {
-            return state.Invalid(TxValidationResult::TX_BAD_SPECIAL, "bad-protx-dup-platformnodeid");
-        }
-    }
+    // if (opt_ptx->nType == MnType::Evo) {
+    //     if (mnList.HasUniqueProperty(opt_ptx->platformNodeID)  && mnList.GetUniquePropertyMN(opt_ptx->platformNodeID)->proTxHash != opt_ptx->proTxHash) {
+    //         return state.Invalid(TxValidationResult::TX_BAD_SPECIAL, "bad-protx-dup-platformnodeid");
+    //     }
+    // }
 
     if (opt_ptx->scriptOperatorPayout != CScript()) {
         if (mn->nOperatorReward == 0) {

@@ -116,22 +116,21 @@ static UniValue masternode_count(const JSONRPCRequest& request)
     obj.pushKV("total", total);
     obj.pushKV("enabled", enabled);
 
-    // Disable Evonodes
-    // int evo_total = mnList.GetAllEvoCount();
-    // int evo_enabled = mnList.GetValidEvoCount();
+    int evo_total = mnList.GetAllEvoCount();
+    int evo_enabled = mnList.GetValidEvoCount();
 
-    // UniValue evoObj(UniValue::VOBJ);
-    // evoObj.pushKV("total", evo_total);
-    // evoObj.pushKV("enabled", evo_enabled);
+    UniValue evoObj(UniValue::VOBJ);
+    evoObj.pushKV("total", evo_total);
+    evoObj.pushKV("enabled", evo_enabled);
 
-    // UniValue regularObj(UniValue::VOBJ);
-    // regularObj.pushKV("total", total - evo_total);
-    // regularObj.pushKV("enabled", enabled - evo_enabled);
+    UniValue regularObj(UniValue::VOBJ);
+    regularObj.pushKV("total", total - evo_total);
+    regularObj.pushKV("enabled", enabled - evo_enabled);
 
-    // UniValue detailedObj(UniValue::VOBJ);
-    // detailedObj.pushKV("regular", regularObj);
-    // detailedObj.pushKV("evo", evoObj);
-    // obj.pushKV("detailed", detailedObj);
+    UniValue detailedObj(UniValue::VOBJ);
+    detailedObj.pushKV("regular", regularObj);
+    detailedObj.pushKV("evo", evoObj);
+    obj.pushKV("detailed", detailedObj);
 
     return obj;
 }
@@ -274,8 +273,7 @@ static UniValue masternode_status(const JSONRPCRequest& request)
     }
     if (dmn) {
         mnObj.pushKV("proTxHash", dmn->proTxHash.ToString());
-        // Disable Evonodes
-        // mnObj.pushKV("type", std::string(GetMnType(dmn->nType).description));
+        mnObj.pushKV("type", std::string(GetMnType(dmn->nType).description));
         mnObj.pushKV("collateralHash", dmn->collateralOutpoint.hash.ToString());
         mnObj.pushKV("collateralIndex", (int)dmn->collateralOutpoint.n);
         mnObj.pushKV("dmnState", dmn->pdmnState->ToJson(dmn->nType));
