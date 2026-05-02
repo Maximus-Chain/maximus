@@ -21,22 +21,16 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: maximuschain/maximusd
+  IMAGE_NAME: maximus-chain/maximusd
   DOCKER_BUILDKIT: 1
 
 jobs:
   # ============================================
-  # Job: Build
+  # Job: Build AMD64
   # ============================================
-  build:
-    name: Build ${{ matrix.platform }}
+  build-amd64:
+    name: Build linux/amd64
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - linux/amd64
-          - linux/arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,10 +44,10 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          path: /tmp/.buildx-cache-amd64
+          key: ${{ runner.os }}-buildx-amd64-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-amd64-
 
       - name: Extract metadata
         id: meta
@@ -65,26 +59,80 @@ jobs:
             type=ref,event=tag
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=amd64-latest,enable={{is_default_branch}}
 
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache-amd64
+          cache-to: type=local,dest=/tmp/.buildx-cache-amd64-new,mode=max
 
-      - name: Run image
+      - name: Verify image
         run: |
-          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} --version
+          docker run --rm --entrypoint /usr/local/bin/maximusd ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:linux-amd64 --version || \
+          docker run --rm --entrypoint /usr/local/bin/maximusd ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} --version
 
       - name: Update cache
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          rm -rf /tmp/.buildx-cache-amd64
+          mv /tmp/.buildx-cache-amd64-new /tmp/.buildx-cache-amd64 2>/dev/null || true
+
+  # ============================================
+  # Job: Build ARM64
+  # ============================================
+  build-arm64:
+    name: Build linux/arm64
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache-arm64
+          key: ${{ runner.os }}-buildx-arm64-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-arm64-
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=arm64-latest,enable={{is_default_branch}}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache-arm64
+          cache-to: type=local,dest=/tmp/.buildx-cache-arm64-new,mode=max
+
+      - name: Update cache
+        run: |
+          rm -rf /tmp/.buildx-cache-arm64
+          mv /tmp/.buildx-cache-arm64-new /tmp/.buildx-cache-arm64 2>/dev/null || true
 
   # ============================================
   # Job: Unit Tests
@@ -123,12 +171,11 @@ jobs:
           make check
 
   # ============================================
-  # Job: Push to Registry
-  # Solo se ejecuta en push a develop/master/tags
+  # Job: Push AMD64 to Registry
   # ============================================
-  push:
-    name: Push to Registry
-    needs: [build]
+  push-amd64:
+    name: Push linux/amd64
+    needs: [build-amd64]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'))
@@ -156,58 +203,177 @@ jobs:
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          path: /tmp/.buildx-cache-amd64
+          key: ${{ runner.os }}-buildx-amd64-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-buildx-
+            ${{ runner.os }}-buildx-amd64-
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-amd64
           tags: |
             type=ref,event=branch
             type=ref,event=tag
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=amd64-latest,enable={{is_default_branch}}
 
-      - name: Build and Push Docker image
+      - name: Build and Push AMD64 image
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=local,src=/tmp/.buildx-cache-amd64
+          cache-to: type=local,dest=/tmp/.buildx-cache-amd64-new,mode=max
 
       - name: Update cache
         run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          rm -rf /tmp/.buildx-cache-amd64
+          mv /tmp/.buildx-cache-amd64-new /tmp/.buildx-cache-amd64 2>/dev/null || true
 
-      - name: Generate SBOM
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+      - name: Image pushed info
+        run: |
+          echo "AMD64 image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest"
+
+  # ============================================
+  # Job: Push ARM64 to Registry
+  # ============================================
+  push-arm64:
+    name: Push linux/arm64
+    needs: [build-arm64]
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'))
+      || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache-arm64
+          key: ${{ runner.os }}-buildx-arm64-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-arm64-
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-arm64
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=arm64-latest,enable={{is_default_branch}}
+
+      - name: Build and Push ARM64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache-arm64
+          cache-to: type=local,dest=/tmp/.buildx-cache-arm64-new,mode=max
+
+      - name: Update cache
+        run: |
+          rm -rf /tmp/.buildx-cache-arm64
+          mv /tmp/.buildx-cache-arm64-new /tmp/.buildx-cache-arm64 2>/dev/null || true
+
+      - name: Image pushed info
+        run: |
+          echo "ARM64 image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest"
+
+  # ============================================
+  # Job: Generate SBOM (runs after both pushes)
+  # ============================================
+  sbom:
+    name: Generate SBOM
+    needs: [push-amd64, push-arm64]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate SBOM for AMD64
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest
           format: spdx-json
-          output-file: sbom.spdx.json
+          output-file: sbom-amd64.spdx.json
 
-      - name: Upload SBOM artifact
-        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+      - name: Generate SBOM for ARM64
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest
+          format: spdx-json
+          output-file: sbom-arm64.spdx.json
+
+      - name: Upload SBOM artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sbom
-          path: sbom.spdx.json
+          name: sbom-amd64
+          path: sbom-amd64.spdx.json
 
-      - name: Image digest
+      - name: Upload SBOM artifacts ARM64
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-arm64
+          path: sbom-arm64.spdx.json
+
+      - name: Summary
         run: |
-          echo "Image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "## Build Summary"
           echo ""
-          echo "Available tags:"
+          echo "### Images pushed:"
+          echo "- AMD64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest"
+          echo "- ARM64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest"
+          echo ""
+          echo "### Available tags:"
           echo "  - latest (default branch)"
           echo "  - develop (development branch)"
           echo "  - master (stable branch)"

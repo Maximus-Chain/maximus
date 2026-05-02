@@ -215,7 +215,7 @@ docker exec maximusd du -sh /home/maximus/.maximuscore
 echo "$GITHUB_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
 
 # Pull the image
-docker pull ghcr.io/maximuschain/maximusd:develop
+docker pull ghcr.io/Maximus-Chain/maximusd:develop
 
 # Run the container
 docker run -d \
@@ -224,14 +224,14 @@ docker run -d \
   -p 9939:9939 \
   -v /path/to/maximus-data:/home/maximus/.maximuscore \
   -e RPC_PASSWORD=your_secure_password \
-  ghcr.io/maximuschain/maximusd:develop
+  ghcr.io/Maximus-Chain/maximusd:develop
 ```
 
 ### Option 2: Copy Image as Tar (Air-Gapped)
 
 ```bash
 # On your build machine, save the image
-docker save ghcr.io/maximuschain/maximusd:develop -o maximusd.tar
+docker save ghcr.io/Maximus-Chain/maximusd:develop -o maximusd.tar
 
 # Transfer to server (USB, scp, etc.)
 scp maximusd.tar user@your-server:/tmp/
@@ -244,7 +244,7 @@ docker run -d \
   --name maximusd \
   -p 9938:9938 \
   -p 9939:9939 \
-  ghcr.io/maximuschain/maximusd:develop
+  ghcr.io/Maximus-Chain/maximusd:develop
 ```
 
 ### Option 3: Deploy with Docker Compose (Recommended for Production)
@@ -256,7 +256,7 @@ version: '3.8'
 
 services:
   maximusd:
-    image: ghcr.io/maximuschain/maximusd:develop
+    image: ghcr.io/Maximus-Chain/maximusd:develop
     container_name: maximusd
     restart: always
     ports:
@@ -309,7 +309,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/bin/docker pull ghcr.io/maximuschain/maximusd:develop
+ExecStartPre=/usr/bin/docker pull ghcr.io/Maximus-Chain/maximusd:develop
 ExecStart=/usr/bin/docker run \
     --name maximusd \
     --read-only \
@@ -319,7 +319,7 @@ ExecStart=/usr/bin/docker run \
     -v /opt/maximus/data:/home/maximus/.maximuscore \
     -e RPC_USER=admin \
     -e RPC_PASSWORD=<YOUR_PASSWORD> \
-    ghcr.io/maximuschain/maximusd:develop
+    ghcr.io/Maximus-Chain/maximusd:develop
 ExecStop=/usr/bin/docker stop -t 60 maximusd
 ExecStopPost=/usr/bin/docker rm -f maximusd
 Restart=always
@@ -478,6 +478,6 @@ docker exec -it maximusd /bin/bash
 
 ## Links
 
-- [Maximus Core GitHub](https://github.com/maximuschain/maximus)
+- [Maximus Core GitHub](https://github.com/Maximus-Chain/maximus)
 - [Maximus Core Documentation](https://docs.maximuschain.com)
 - [Docker Documentation](https://docs.docker.com)
