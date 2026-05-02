@@ -46,8 +46,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          dockerfile: docker/Dockerfile
+          context: docker
+          dockerfile: Dockerfile
           platforms: linux/amd64
           push: false
           tags: |
@@ -92,8 +92,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          dockerfile: docker/Dockerfile
+          context: docker
+          dockerfile: Dockerfile
           platforms: linux/arm64
           push: false
           tags: |
@@ -112,13 +112,19 @@ jobs:
   test:
     name: Unit Tests
     runs-on: ubuntu-latest
-    container: ubuntu:focal
+    container:
+      image: ubuntu:focal
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        TZ: UTC
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
+          export DEBIAN_FRONTEND=noninteractive
+          export TZ=UTC
           apt-get update
           apt-get install -y build-essential libtool autotools-dev automake \
             pkg-config bsdmainutils bison python3 libevent-dev \
@@ -183,8 +189,8 @@ jobs:
       - name: Build and Push AMD64 image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          dockerfile: docker/Dockerfile
+          context: docker
+          dockerfile: Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
@@ -246,8 +252,8 @@ jobs:
       - name: Build and Push ARM64 image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          dockerfile: docker/Dockerfile
+          context: docker
+          dockerfile: Dockerfile
           platforms: linux/arm64
           push: true
           tags: |
