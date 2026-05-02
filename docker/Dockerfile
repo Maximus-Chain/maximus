@@ -100,7 +100,7 @@ FROM ubuntu:jammy AS runtime
 
 LABEL maintainer="Maximus Developers <dev@maximus.org>"
 LABEL description="Maximus Core node daemon for blockchain operations"
-LABEL org.opencontainers.image.source="https://github.com/Maximus-Chain/maximus"
+LABEL org.opencontainers.image.source="https://github.com/maximus-chain/maximus"
 
 # Security labels
 USER root

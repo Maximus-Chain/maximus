@@ -15,7 +15,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: Maximus-Chain/maximusd
+  IMAGE_NAME: maximus-chain/maximusd
   DOCKER_BUILDKIT: 1
 
 jobs:

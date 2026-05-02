@@ -5,6 +5,8 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 export LC_ALL=C.UTF-8
+export DEBIAN_FRONTEND=noninteractive
+export TZ=UTC
 
 if [[ $DOCKER_NAME_TAG == centos* ]]; then
   export LC_ALL=en_US.utf8
