@@ -47,6 +47,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          dockerfile: docker/Dockerfile
           platforms: linux/amd64
           push: false
           tags: |
@@ -92,6 +93,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          dockerfile: docker/Dockerfile
           platforms: linux/arm64
           push: false
           tags: |
@@ -182,6 +184,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          dockerfile: docker/Dockerfile
           platforms: linux/amd64
           push: true
           tags: |
@@ -244,6 +247,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          dockerfile: docker/Dockerfile
           platforms: linux/arm64
           push: true
           tags: |
