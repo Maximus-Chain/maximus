@@ -48,6 +48,7 @@ jobs:
         with:
           
           platforms: linux/amd64
+          load: true
           push: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-build
@@ -93,6 +94,7 @@ jobs:
         with:
           
           platforms: linux/arm64
+          load: true
           push: false
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-build
