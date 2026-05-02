@@ -46,8 +46,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: docker
-          dockerfile: Dockerfile
+          
           platforms: linux/amd64
           push: false
           tags: |
@@ -92,8 +91,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
-          context: docker
-          dockerfile: Dockerfile
+          
           platforms: linux/arm64
           push: false
           tags: |
@@ -189,8 +187,7 @@ jobs:
       - name: Build and Push AMD64 image
         uses: docker/build-push-action@v6
         with:
-          context: docker
-          dockerfile: Dockerfile
+          
           platforms: linux/amd64
           push: true
           tags: |
@@ -252,8 +249,7 @@ jobs:
       - name: Build and Push ARM64 image
         uses: docker/build-push-action@v6
         with:
-          context: docker
-          dockerfile: Dockerfile
+          
           platforms: linux/arm64
           push: true
           tags: |

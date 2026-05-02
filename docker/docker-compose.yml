@@ -7,7 +7,7 @@ services:
   maximusd:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
       args:
         USER_ID: ${UID:-1000}
         GROUP_ID: ${GID:-1000}
@@ -38,7 +38,7 @@ services:
   maximusd-testnet:
     build:
       context: ..
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
       args:
         USER_ID: ${UID:-1000}
         GROUP_ID: ${GID:-1000}
