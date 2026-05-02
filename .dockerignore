@@ -1,4 +1,64 @@
-**
-!contrib/containers/ci/Dockerfile
-!contrib/containers/deploy/Dockerfile
-!contrib/containers/develop/Dockerfile
+# ============================================
+# Docker Build Context Ignore File
+# ============================================
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# GitHub
+.github
+
+# Documentation (not needed in image)
+*.md
+LICENSE
+COPYING
+
+# CI/CD scripts (not needed in image)
+ci/
+travis/
+gitlab-ci*
+
+# Test files
+# test/
+
+# Build artifacts (shouldn't exist during build)
+src/*.o
+src/*.a
+src/*.so
+src/*.dylib
+build-ci/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+debug.log
+fee_estimates.dat
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Qt/GUI files (we build headless)
+src/qt/
+
+# Windows/Mac specific
+*.exe
+*.dll
+*.app
+*.appbundle
+
+# Documentation for Docker
+!docker/

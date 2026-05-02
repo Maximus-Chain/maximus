@@ -1,0 +1,214 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force build ignoring cache'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: maximuschain/maximusd
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # ============================================
+  # Job: Build
+  # ============================================
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Run image
+        run: |
+          docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} --version
+
+      - name: Update cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+  # ============================================
+  # Job: Unit Tests
+  # ============================================
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    container: ubuntu:focal
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y build-essential libtool autotools-dev automake \
+            pkg-config bsdmainutils bison python3 libevent-dev \
+            libboost-system-dev libboost-filesystem-dev libboost-test-dev \
+            libsqlite3-dev libgmp-dev libminiupnpc-dev libnatpmp-dev \
+            libzmq3-dev
+
+      - name: Build depends
+        run: |
+          make -j$(nproc) HOST=x86_64-pc-linux-gnu
+
+      - name: Configure
+        env:
+          CONFIG_SITE: ${{ github.workspace }}/depends/x86_64-pc-linux-gnu/share/config.site
+        run: |
+          ./autogen.sh
+          ./configure --prefix=${{ github.workspace }}/depends/x86_64-pc-linux-gnu
+          make -j$(nproc)
+
+      - name: Run tests
+        run: |
+          make check
+
+  # ============================================
+  # Job: Push to Registry
+  # Solo se ejecuta en push a develop/master/tags
+  # ============================================
+  push:
+    name: Push to Registry
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'push' && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'))
+      || startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+
+      - name: Update cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Generate SBOM
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      - name: Upload SBOM artifact
+        if: github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+      - name: Image digest
+        run: |
+          echo "Image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo ""
+          echo "Available tags:"
+          echo "  - latest (default branch)"
+          echo "  - develop (development branch)"
+          echo "  - master (stable branch)"
+          echo "  - v1.x.x (version tags)"

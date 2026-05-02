@@ -1,0 +1,93 @@
+# ============================================
+# Maximus Core - Local Development Stack
+# ============================================
+
+services:
+  # Maximus Core Node - Mainnet
+  maximusd:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
+    image: maximus-local:latest
+    restart: unless-stopped
+    ports:
+      - "9938:9938"   # Mainnet RPC
+      - "9939:9939"   # Mainnet P2P
+    environment:
+      - NETWORK=mainnet
+      - RPC_USER=maximus
+      - RPC_PASSWORD=changeme_secure_password_here
+    expose:
+      - "9938"   # Mainnet RPC
+      - "9939"   # Mainnet P2P
+    volumes:
+      - maximus-data:/home/maximus/.maximuscore
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9938"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - maximus-net
+
+  # Maximus Core Node - Testnet
+  maximusd-testnet:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        USER_ID: ${UID:-1000}
+        GROUP_ID: ${GID:-1000}
+    image: maximus-local:latest
+    container_name: maximusd-testnet
+    restart: unless-stopped
+    profiles:
+      - testnet
+    ports:
+      - "19938:19938" # Testnet RPC
+      - "19939:19939" # Testnet P2P
+    environment:
+      - NETWORK=testnet
+      - RPC_USER=maximus
+      - RPC_PASSWORD=changeme_secure_password_here
+    expose:
+      - "19938" # Testnet RPC
+      - "19939" # Testnet P2P
+    volumes:
+      - maximus-testnet-data:/home/maximus/.maximuscore
+    networks:
+      - maximus-net
+
+  # CLI client for debugging
+  maximus-cli:
+    image: maximus-local:latest
+    container_name: maximus-cli
+    profiles:
+      - cli
+    environment:
+      - RPC_USER=maximus
+      - RPC_PASSWORD=changeme_secure_password_here
+      - RPC_HOST=maximusd
+      - RPC_PORT=9938
+    entrypoint: /usr/local/bin/maximus-cli
+    command: -rpcconnect=maximusd -rpcport=9938 getnetworkinfo
+    depends_on:
+      - maximusd
+    networks:
+      - maximus-net
+    volumes:
+      - maximus-data:/home/maximus/.maximuscore:ro
+
+networks:
+  maximus-net:
+    driver: bridge
+
+volumes:
+  maximus-data:
+    driver: local
+  maximus-testnet-data:
+    driver: local
