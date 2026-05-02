@@ -4,6 +4,7 @@ This directory contains all the necessary files to build and run Maximus Core us
 
 ## Table of Contents
 
+- [Available Images](#available-images)
 - [Quick Start](#quick-start)
 - [Building Locally](#building-locally)
 - [Testing Before Push](#testing-before-push)
@@ -13,13 +14,59 @@ This directory contains all the necessary files to build and run Maximus Core us
 
 ---
 
-## Quick Start
+## Available Images
 
-### Build and run locally
+All images are hosted on GitHub Container Registry: `ghcr.io/Maximus-Chain/maximusd`
+
+### Image Tags
+
+| Tag | Architecture | Description |
+|-----|--------------|-------------|
+| `latest` | linux/amd64 | Stable release (master branch) |
+| `latest-arm64` | linux/arm64 | Stable release for ARM devices |
+| `develop` | linux/amd64 | Development/nightly build |
+| `develop-arm64` | linux/arm64 | Development build for ARM |
+| `v1.x.x` | linux/amd64 | Specific release version |
+| `v1.x.x-arm64` | linux/arm64 | Specific release for ARM |
+| `sha-xxxxxxxx` | linux/amd64 | Commit-specific build |
+| `sha-xxxxxxxx-arm64` | linux/arm64 | Commit-specific ARM build |
+
+### Choose Your Image
 
 ```bash
-# Build the image
-docker build -f docker/Dockerfile -t maximus-local:latest .
+# Intel/AMD CPUs (most common)
+docker pull ghcr.io/Maximus-Chain/maximusd:latest
+
+# ARM CPUs (Raspberry Pi, Mac M1/M2 with Linux, etc.)
+docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64
+
+# Development/nightly builds
+docker pull ghcr.io/Maximus-Chain/maximusd:develop
+docker pull ghcr.io/Maximus-Chain/maximusd:develop-arm64
+
+# Specific version
+docker pull ghcr.io/Maximus-Chain/maximusd:v1.1.0
+docker pull ghcr.io/Maximus-Chain/maximusd:v1.1.0-arm64
+```
+
+### Architecture Notes
+
+- **amd64**: Intel and AMD processors (desktops, servers, most common)
+- **arm64**: ARM processors (Raspberry Pi 3/4, Mac M1/M2/M3, ARM servers)
+
+Both architectures are built independently to ensure reliability.
+
+---
+
+## Quick Start
+
+### Run with Docker (recommended)
+
+```bash
+# Pull the image (choose your architecture)
+docker pull ghcr.io/Maximus-Chain/maximusd:latest        # Intel/AMD
+# OR
+docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64  # ARM
 
 # Run the container
 docker run -d \
@@ -27,7 +74,7 @@ docker run -d \
   -p 9938:9938 \
   -p 9939:9939 \
   -v maximus-data:/home/maximus/.maximuscore \
-  maximus-local:latest
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### Using Docker Compose (Recommended)
@@ -214,8 +261,10 @@ docker exec maximusd du -sh /home/maximus/.maximuscore
 # On your server, login to ghcr.io
 echo "$GITHUB_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
 
-# Pull the image
-docker pull ghcr.io/Maximus-Chain/maximusd:develop
+# Pull the image (choose architecture)
+docker pull ghcr.io/Maximus-Chain/maximusd:latest        # Intel/AMD
+# OR for ARM:
+docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64
 
 # Run the container
 docker run -d \
@@ -224,14 +273,14 @@ docker run -d \
   -p 9939:9939 \
   -v /path/to/maximus-data:/home/maximus/.maximuscore \
   -e RPC_PASSWORD=your_secure_password \
-  ghcr.io/Maximus-Chain/maximusd:develop
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### Option 2: Copy Image as Tar (Air-Gapped)
 
 ```bash
 # On your build machine, save the image
-docker save ghcr.io/Maximus-Chain/maximusd:develop -o maximusd.tar
+docker save ghcr.io/Maximus-Chain/maximusd:latest -o maximusd.tar
 
 # Transfer to server (USB, scp, etc.)
 scp maximusd.tar user@your-server:/tmp/
@@ -244,7 +293,7 @@ docker run -d \
   --name maximusd \
   -p 9938:9938 \
   -p 9939:9939 \
-  ghcr.io/Maximus-Chain/maximusd:develop
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### Option 3: Deploy with Docker Compose (Recommended for Production)
@@ -256,7 +305,7 @@ version: '3.8'
 
 services:
   maximusd:
-    image: ghcr.io/Maximus-Chain/maximusd:develop
+    image: ghcr.io/Maximus-Chain/maximusd:latest  # Use :latest-arm64 for ARM
     container_name: maximusd
     restart: always
     ports:
@@ -271,7 +320,7 @@ services:
     volumes:
       - /opt/maximus/data:/home/maximus/.maximuscore
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9938"]
+      test: ["CMD", "nc", "-z", "localhost", "9938"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -309,7 +358,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/bin/docker pull ghcr.io/Maximus-Chain/maximusd:develop
+ExecStartPre=/usr/bin/docker pull ghcr.io/Maximus-Chain/maximusd:latest
 ExecStart=/usr/bin/docker run \
     --name maximusd \
     --read-only \
@@ -319,7 +368,7 @@ ExecStart=/usr/bin/docker run \
     -v /opt/maximus/data:/home/maximus/.maximuscore \
     -e RPC_USER=admin \
     -e RPC_PASSWORD=<YOUR_PASSWORD> \
-    ghcr.io/Maximus-Chain/maximusd:develop
+    ghcr.io/Maximus-Chain/maximusd:latest
 ExecStop=/usr/bin/docker stop -t 60 maximusd
 ExecStopPost=/usr/bin/docker rm -f maximusd
 Restart=always
@@ -362,23 +411,23 @@ sudo systemctl status maximusd
 docker run -d \
   -e RPC_USER=myuser \
   -e RPC_PASSWORD=supersecret123 \
-  maximus-local:latest
+  ghcr.io/Maximus-Chain/maximusd:latest
 
 # Testnet
 docker run -d \
   -e NETWORK=testnet \
-  maximus-local:latest
+  ghcr.io/Maximus-Chain/maximusd:latest
 
 # Regtest for development
 docker run -d \
   -e NETWORK=regtest \
   -e MAXIMUSD_OPTS="-printtoconsole=1 -debug=1" \
-  maximus-local:latest
+  ghcr.io/Maximus-Chain/maximusd:latest
 
 # Disable RPC authentication (NOT FOR PRODUCTION)
 docker run -d \
-  -e RPC_PASSWORD= "" \
-  maximus-local:latest
+  -e RPC_PASSWORD="" \
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### Volume Mounts
@@ -398,7 +447,7 @@ docker run -d \
 docker logs maximusd
 
 # Run in foreground to see errors
-docker run -it maximus-local:latest
+docker run -it ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### RPC Connection Refused

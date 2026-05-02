@@ -12,16 +12,10 @@ on:
       - master
       - develop
   workflow_dispatch:
-    inputs:
-      force_build:
-        description: 'Force build ignoring cache'
-        required: false
-        default: false
-        type: boolean
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: maximus-chain/maximusd
+  IMAGE_NAME: Maximus-Chain/maximusd
   DOCKER_BUILDKIT: 1
 
 jobs:
@@ -29,7 +23,7 @@ jobs:
   # Job: Build AMD64
   # ============================================
   build-amd64:
-    name: Build linux/amd64
+    name: Build amd64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -49,33 +43,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-amd64-
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=amd64-latest,enable={{is_default_branch}}
-
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
           push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-build
           cache-from: type=local,src=/tmp/.buildx-cache-amd64
           cache-to: type=local,dest=/tmp/.buildx-cache-amd64-new,mode=max
 
       - name: Verify image
         run: |
-          docker run --rm --entrypoint /usr/local/bin/maximusd ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:linux-amd64 --version || \
-          docker run --rm --entrypoint /usr/local/bin/maximusd ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }} --version
+          docker run --rm --entrypoint /usr/local/bin/maximusd \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-build --version
 
       - name: Update cache
         run: |
@@ -86,7 +68,7 @@ jobs:
   # Job: Build ARM64
   # ============================================
   build-arm64:
-    name: Build linux/arm64
+    name: Build arm64
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -106,26 +88,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-arm64-
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=arm64-latest,enable={{is_default_branch}}
-
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
           push: false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-build
           cache-from: type=local,src=/tmp/.buildx-cache-arm64
           cache-to: type=local,dest=/tmp/.buildx-cache-arm64-new,mode=max
 
@@ -174,7 +144,7 @@ jobs:
   # Job: Push AMD64 to Registry
   # ============================================
   push-amd64:
-    name: Push linux/amd64
+    name: Push amd64
     needs: [build-amd64]
     runs-on: ubuntu-latest
     if: |
@@ -208,28 +178,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-amd64-
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-amd64
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=amd64-latest,enable={{is_default_branch}}
-
       - name: Build and Push AMD64 image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-build
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           cache-from: type=local,src=/tmp/.buildx-cache-amd64
           cache-to: type=local,dest=/tmp/.buildx-cache-amd64-new,mode=max
 
@@ -240,13 +200,13 @@ jobs:
 
       - name: Image pushed info
         run: |
-          echo "AMD64 image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest"
+          echo "AMD64 image pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}"
 
   # ============================================
   # Job: Push ARM64 to Registry
   # ============================================
   push-arm64:
-    name: Push linux/arm64
+    name: Push arm64
     needs: [build-arm64]
     runs-on: ubuntu-latest
     if: |
@@ -280,28 +240,18 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-buildx-arm64-
 
-      - name: Extract metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-arm64
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=arm64-latest,enable={{is_default_branch}}
-
       - name: Build and Push ARM64 image
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-build
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop-arm64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-arm64
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}-arm64
           cache-from: type=local,src=/tmp/.buildx-cache-arm64
           cache-to: type=local,dest=/tmp/.buildx-cache-arm64-new,mode=max
 
@@ -312,7 +262,7 @@ jobs:
 
       - name: Image pushed info
         run: |
-          echo "ARM64 image pushed to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest"
+          echo "ARM64 image pushed: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}-arm64"
 
   # ============================================
   # Job: Generate SBOM (runs after both pushes)
@@ -342,14 +292,14 @@ jobs:
       - name: Generate SBOM for AMD64
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
           format: spdx-json
           output-file: sbom-amd64.spdx.json
 
       - name: Generate SBOM for ARM64
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
           format: spdx-json
           output-file: sbom-arm64.spdx.json
 
@@ -370,11 +320,11 @@ jobs:
           echo "## Build Summary"
           echo ""
           echo "### Images pushed:"
-          echo "- AMD64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:amd64-latest"
-          echo "- ARM64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:arm64-latest"
+          echo "- amd64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          echo "- arm64: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64"
           echo ""
-          echo "### Available tags:"
-          echo "  - latest (default branch)"
-          echo "  - develop (development branch)"
-          echo "  - master (stable branch)"
-          echo "  - v1.x.x (version tags)"
+          echo "### All available tags:"
+          echo "  - latest, latest-arm64 (master branch)"
+          echo "  - develop, develop-arm64 (develop branch)"
+          echo "  - v1.x.x, v1.x.x-arm64 (version tags)"
+          echo "  - sha-xxx, sha-xxx-arm64 (every commit)"
