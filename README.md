@@ -4,10 +4,30 @@ Maximus Core staging tree
 |CI|master|develop|
 |-|-|-|
 |Gitlab|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/master/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/master)|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/develop/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/develop)|
+|GitHub|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|
 
 https://www.maximuschain.com
 
-For an immediately usable, binary version of the Maximus Core software, see releases in our GitHub.
+For an immediately usable, binary version of the Maximus Core software, see releases in our [GitHub](https://github.com/maximus-chain/maximus/releases) or pull our [Docker images](https://github.com/maximus-chain/maximus/pkgs/container/maximusd).
+
+### Docker Images
+
+| Tag | Architecture | Description |
+|-----|--------------|-------------|
+| `latest` | linux/amd64 | Stable release |
+| `latest-arm64` | linux/arm64 | Stable for ARM devices |
+| `develop` | linux/amd64 | Development build |
+| `develop-arm64` | linux/arm64 | Development for ARM |
+
+```bash
+# Pull latest stable (Intel/AMD)
+docker pull ghcr.io/maximus-chain/maximusd:latest
+
+# Pull latest stable (ARM)
+docker pull ghcr.io/maximus-chain/maximusd:latest-arm64
+```
+
+For more details, see [docker/README_DOCKER.md](docker/README_DOCKER.md).
 
 Further information about Maximus Core is available in the [doc folder](/doc).
 
