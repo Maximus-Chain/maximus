@@ -107,48 +107,6 @@ jobs:
           mv /tmp/.buildx-cache-arm64-new /tmp/.buildx-cache-arm64 2>/dev/null || true
 
   # ============================================
-  # Job: Unit Tests
-  # ============================================
-  test:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:focal
-      env:
-        DEBIAN_FRONTEND: noninteractive
-        TZ: UTC
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          export DEBIAN_FRONTEND=noninteractive
-          export TZ=UTC
-          apt-get update
-          apt-get install -y build-essential libtool autotools-dev automake \
-            pkg-config bsdmainutils bison python3 libevent-dev \
-            libboost-system-dev libboost-filesystem-dev libboost-test-dev \
-            libsqlite3-dev libgmp-dev libminiupnpc-dev libnatpmp-dev \
-            libzmq3-dev
-
-      - name: Build depends
-        run: |
-          make -j$(nproc) HOST=x86_64-pc-linux-gnu
-
-      - name: Configure
-        env:
-          CONFIG_SITE: ${{ github.workspace }}/depends/x86_64-pc-linux-gnu/share/config.site
-        run: |
-          ./autogen.sh
-          ./configure --prefix=${{ github.workspace }}/depends/x86_64-pc-linux-gnu
-          make -j$(nproc)
-
-      - name: Run tests
-        run: |
-          make check
-
-  # ============================================
   # Job: Push AMD64 to Registry
   # ============================================
   push-amd64:

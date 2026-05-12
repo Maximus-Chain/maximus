@@ -4,11 +4,11 @@ Maximus Core staging tree
 |CI|master|develop|
 |-|-|-|
 |Gitlab|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/master/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/master)|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/develop/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/develop)|
-|GitHub|[![Build](https://github.com/Maximus-Chain/maximus/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/Maximus-Chain/maximus/actions/workflows/build.yml)|[![Build](https://github.com/Maximus-Chain/maximus/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/Maximus-Chain/maximus/actions/workflows/build.yml)|
+|GitHub|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|
 
 https://www.maximuschain.com
 
-For an immediately usable, binary version of the Maximus Core software, see releases in our [GitHub](https://github.com/Maximus-Chain/maximus/releases) or pull our [Docker images](https://github.com/Maximus-Chain/maximus/pkgs/container/maximusd).
+For an immediately usable, binary version of the Maximus Core software, see releases in our [GitHub](https://github.com/maximus-chain/maximus/releases) or pull our [Docker images](https://github.com/maximus-chain/maximus/pkgs/container/maximusd).
 
 ### Docker Images
 
@@ -21,10 +21,10 @@ For an immediately usable, binary version of the Maximus Core software, see rele
 
 ```bash
 # Pull latest stable (Intel/AMD)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest
+docker pull ghcr.io/maximus-chain/maximusd:latest
 
 # Pull latest stable (ARM)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64
+docker pull ghcr.io/maximus-chain/maximusd:latest-arm64
 ```
 
 For more details, see [docker/README_DOCKER.md](docker/README_DOCKER.md).
@@ -49,7 +49,7 @@ Development Process
 -------------------
 
 The `master` branch is meant to be stable. Development is normally done in separate branches.
-[Tags](https://github.com/Maximus-Chain/maximus/tags) are created to indicate new official,
+[Tags](https://github.com/maximus-chain/maximus/tags) are created to indicate new official,
 stable release versions of Maximus Core.
 
 The `develop` branch is regularly built (see doc/build-*.md for instructions) and tested, but is not guaranteed to be

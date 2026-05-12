@@ -1,352 +1,293 @@
-# Maximus Core - Docker Deployment Guide
+# Maximus Core - Docker Quick Start Guide
 
-This directory contains all the necessary files to build and run Maximus Core using Docker containers.
-
-## Table of Contents
-
-- [Available Images](#available-images)
-- [Quick Start](#quick-start)
-- [Building Locally](#building-locally)
-- [Testing Before Push](#testing-before-push)
-- [Deployment to Your Server](#deployment-to-your-server)
-- [Configuration Options](#configuration-options)
-- [Troubleshooting](#troubleshooting)
+Want your own Maximus node running in minutes? This guide makes it easy.
 
 ---
+
+## 🚀 Easiest Way (1-click)
+
+Just install Docker first. Then copy and paste these commands:
+
+### On Your Computer (Intel/AMD)
+
+```bash
+docker run -d \
+  --name maximusd \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+### On Raspberry Pi or Mac M1/M2/M3
+
+```bash
+docker run -d \
+  --name maximusd \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  ghcr.io/maximus-chain/maximusd:latest-arm64
+```
+
+Done! Your node is now running. It will start downloading the blockchain automatically.
+
+---
+
+## 📊 Useful Commands (After Starting)
+
+```bash
+# Check if it's running
+docker ps
+
+# Watch real-time logs (see sync progress)
+docker logs -f maximusd
+
+# Exit logs: Ctrl + C
+
+# Get node info
+docker exec maximusd maximus-cli getblockchaininfo
+
+# Check how many blocks downloaded
+docker exec maximusd maximus-cli getblockchaininfo | grep blocks
+
+# Stop the node
+docker stop maximusd
+
+# Start it again
+docker start maximusd
+
+# Remove the container (keeps your data safe)
+docker stop maximusd && docker rm maximusd
+```
+
+---
+
+## 🔐 Basic Security
+
+**Important:** By default, a password is created automatically. For production, use your own:
+
+```bash
+docker run -d \
+  --name maximusd \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  -e RPC_PASSWORD=YOUR_VERY_SECURE_PASSWORD \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+> **Never** expose port 9939 (RPC) to the internet. It's only for local use.
+
+---
+
+## 🧪 I Want to Test (Testnet)
+
+To try without using real money:
+
+```bash
+docker run -d \
+  --name maximusd-testnet \
+  -p 19938:19938 \
+  -p 19939:19939 \
+  -e NETWORK=testnet \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+---
+
+## 💾 Saving Your Data (Volumes)
+
+By default, Docker stores the blockchain in internal storage. If you want to choose where data is saved:
+
+```bash
+# Create a folder for data
+mkdir -p ~/maximus-data
+
+# Run maximus with that folder
+docker run -d \
+  --name maximusd \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  -v ~/maximus-data:/home/maximus/.maximuscore \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+---
+
+## ❓ Frequently Asked Questions
+
+### How much space do I need?
+- Mainnet: ~50 GB (and growing)
+- Testnet: ~5 GB
+
+### How long does sync take?
+- First time can take hours/days depending on your connection
+- You can watch progress with `docker logs -f maximusd`
+
+### Can I use it on a Raspberry Pi?
+Yes! Use the `latest-arm64` image
+
+### What if I shut down my computer?
+Your data is safe. When you start Docker and run `docker start maximusd`, it will continue where it left off.
+
+### How do I know it's working well?
+Run:
+```bash
+docker exec maximusd maximus-cli getnetworkinfo
+```
+
+You should see `"version"`, `"subversion"` and `"protocolversion"`.
+
+---
+
+## 🛠️ Troubleshooting
+
+### Container won't start
+```bash
+# See what error occurred
+docker logs maximusd
+
+# If error says "port already allocated", another program is using that port
+# Close that program or change the ports:
+docker run -d \
+  --name maximusd \
+  -p 19938:9938 \
+  -p 19939:9939 \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+### Node won't sync
+```bash
+# See how many peers it has connected
+docker exec maximusd maximus-cli getpeerinfo
+
+# If empty, it might be a network issue. Wait a few minutes.
+```
+
+### Need more help
+```bash
+# See all logs
+docker logs maximusd
+
+# Enter the container to explore
+docker exec -it maximusd /bin/bash
+```
+
+---
+
+---
+
+# 📖 Technical Documentation (For Advanced Users)
 
 ## Available Images
 
-All images are hosted on GitHub Container Registry: `ghcr.io/Maximus-Chain/maximusd`
+| Image | What it's for |
+|-------|---------------|
+| `latest` | Stable release (Intel/AMD) |
+| `latest-arm64` | Stable release (Raspberry Pi, Mac M1/M2/M3) |
+| `develop` | Development/testing version |
+| `v1.x.x` | Specific version |
 
-### Image Tags
-
-| Tag | Architecture | Description |
-|-----|--------------|-------------|
-| `latest` | linux/amd64 | Stable release (master branch) |
-| `latest-arm64` | linux/arm64 | Stable release for ARM devices |
-| `develop` | linux/amd64 | Development/nightly build |
-| `develop-arm64` | linux/arm64 | Development build for ARM |
-| `v1.x.x` | linux/amd64 | Specific release version |
-| `v1.x.x-arm64` | linux/arm64 | Specific release for ARM |
-| `sha-xxxxxxxx` | linux/amd64 | Commit-specific build |
-| `sha-xxxxxxxx-arm64` | linux/arm64 | Commit-specific ARM build |
-
-### Choose Your Image
+### Pull a Specific Image
 
 ```bash
-# Intel/AMD CPUs (most common)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest
-
-# ARM CPUs (Raspberry Pi, Mac M1/M2 with Linux, etc.)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64
-
-# Development/nightly builds
-docker pull ghcr.io/Maximus-Chain/maximusd:develop
-docker pull ghcr.io/Maximus-Chain/maximusd:develop-arm64
+# Stable version
+docker pull ghcr.io/maximus-chain/maximusd:latest
 
 # Specific version
-docker pull ghcr.io/Maximus-Chain/maximusd:v1.1.0
-docker pull ghcr.io/Maximus-Chain/maximusd:v1.1.0-arm64
+docker pull ghcr.io/maximus-chain/maximusd:v1.1.0
+
+# Development version
+docker pull ghcr.io/maximus-chain/maximusd:develop
 ```
 
-### Architecture Notes
+## Docker Compose (Server Deployment)
 
-- **amd64**: Intel and AMD processors (desktops, servers, most common)
-- **arm64**: ARM processors (Raspberry Pi 3/4, Mac M1/M2/M3, ARM servers)
-
-Both architectures are built independently to ensure reliability.
-
----
-
-## Quick Start
-
-### Run with Docker (recommended)
-
-```bash
-# Pull the image (choose your architecture)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest        # Intel/AMD
-# OR
-docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64  # ARM
-
-# Run the container
-docker run -d \
-  --name maximusd \
-  -p 9938:9938 \
-  -p 9939:9939 \
-  -v maximus-data:/home/maximus/.maximuscore \
-  ghcr.io/Maximus-Chain/maximusd:latest
-```
-
-### Using Docker Compose (Recommended)
-
-```bash
-cd docker
-
-# Start the container
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop the container
-docker-compose down
-```
-
----
-
-## Building Locally
-
-### Prerequisites
-
-- Docker 20.10+ with BuildKit enabled
-- 4GB+ RAM available for build
-- ~20GB disk space (for build cache)
-- Linux, macOS, or Windows with WSL2
-
-### Enable BuildKit
-
-```bash
-# Option 1: Environment variables
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
-
-# Option 2: Add to ~/.bashrc or ~/.zshrc
-echo 'export DOCKER_BUILDKIT=1' >> ~/.bashrc
-echo 'export COMPOSE_DOCKER_CLI_BUILD=1' >> ~/.bashrc
-```
-
-### Build Commands
-
-```bash
-# Build for current architecture only (faster)
-docker build -f docker/Dockerfile -t maximus-local:latest .
-
-# Build for multiple architectures (amd64 + arm64)
-docker buildx create --use
-docker buildx build \
-  -f docker/Dockerfile \
-  --platform linux/amd64,linux/arm64 \
-  -t maximus-local:latest \
-  --load \
-  .
-
-# Build with no cache (clean build)
-docker build --no-cache -f docker/Dockerfile -t maximus-local:latest .
-```
-
----
-
-## Testing Before Push
-
-### Step 1: Verify Build
-
-```bash
-# Check the image was created
-docker images | grep maximus
-
-# Verify binary exists inside image
-docker run --rm maximus-local:latest /usr/local/bin/maximusd --version
-```
-
-### Step 2: Run Basic Tests
-
-```bash
-# Start container in foreground to see logs
-docker run -it \
-  -p 9938:9938 \
-  -p 9939:9939 \
-  maximus-local:latest
-
-# Or with docker-compose in foreground
-docker-compose up
-
-# Press Ctrl+C to stop
-```
-
-### Step 3: Test RPC Connection
-
-```bash
-# Wait for the node to start (about 30 seconds)
-sleep 30
-
-# Create a test file with RPC credentials
-cat > /tmp/rpc-test.sh << 'EOF'
-#!/bin/bash
-RPC_USER="${RPC_USER:-maximus}"
-RPC_PASSWORD="${RPC_PASSWORD:-changeme}"
-RPC_HOST="${RPC_HOST:-localhost}"
-RPC_PORT="${RPC_PORT:-9939}"
-
-echo "Testing RPC connection to ${RPC_HOST}:${RPC_PORT}..."
-curl -s -X POST \
-  -H "Content-Type: application/json" \
-  -u "${RPC_USER}:${RPC_PASSWORD}" \
-  -d '{"jsonrpc":"1.0","id":"test","method":"getnetworkinfo","params":[]}' \
-  http://${RPC_HOST}:${RPC_PORT}/
-EOF
-
-chmod +x /tmp/rpc-test.sh
-
-# Run the test
-RPC_USER=maximus RPC_PASSWORD=changeme_secure_password_here /tmp/rpc-test.sh
-```
-
-### Step 4: Verify Blockchain Sync
-
-```bash
-# Check sync status
-docker exec maximusd /usr/local/bin/maximus-cli getblockchaininfo
-
-# Look for "blocks" and "verificationprogress" in the output
-# 99%+ means fully synced
-```
-
-### Step 5: Test Different Networks
-
-```bash
-# Test mainnet (default)
-docker-compose up -d
-sleep 60
-docker exec maximusd maximus-cli getblockchaininfo | grep initialblockdownload
-
-# Test testnet
-docker-compose -f docker-compose.yml -f docker-compose.testnet.yml up -d
-# Note: You may need to create docker-compose.testnet.yml or use environment variables
-NETWORK=testnet docker-compose up -d
-```
-
-### Step 6: Volume Persistence Test
-
-```bash
-# Create the container with a named volume
-docker-compose up -d
-
-# Wait for it to start and create some data
-sleep 30
-
-# Check that data was created
-docker exec maximusd ls -la /home/maximus/.maximuscore/
-
-# Stop and remove the container
-docker-compose down
-
-# Start again - data should persist
-docker-compose up -d
-sleep 10
-
-# Verify data still exists
-docker exec maximusd ls -la /home/maximus/.maximuscore/
-```
-
-### Step 7: Resource Usage Check
-
-```bash
-# Check CPU and memory usage
-docker stats maximusd --no-stream
-
-# Check disk usage of the volume
-docker volume inspect docker_maximus-data
-
-# Inside container
-docker exec maximusd du -sh /home/maximus/.maximuscore
-```
-
----
-
-## Deployment to Your Server
-
-### Option 1: Pull from GitHub Container Registry
-
-```bash
-# On your server, login to ghcr.io
-echo "$GITHUB_TOKEN" | docker login ghcr.io -u USERNAME --password-stdin
-
-# Pull the image (choose architecture)
-docker pull ghcr.io/Maximus-Chain/maximusd:latest        # Intel/AMD
-# OR for ARM:
-docker pull ghcr.io/Maximus-Chain/maximusd:latest-arm64
-
-# Run the container
-docker run -d \
-  --name maximusd \
-  -p 9938:9938 \
-  -p 9939:9939 \
-  -v /path/to/maximus-data:/home/maximus/.maximuscore \
-  -e RPC_PASSWORD=your_secure_password \
-  ghcr.io/Maximus-Chain/maximusd:latest
-```
-
-### Option 2: Copy Image as Tar (Air-Gapped)
-
-```bash
-# On your build machine, save the image
-docker save ghcr.io/Maximus-Chain/maximusd:latest -o maximusd.tar
-
-# Transfer to server (USB, scp, etc.)
-scp maximusd.tar user@your-server:/tmp/
-
-# On your server, load the image
-docker load -i /tmp/maximusd.tar
-
-# Run
-docker run -d \
-  --name maximusd \
-  -p 9938:9938 \
-  -p 9939:9939 \
-  ghcr.io/Maximus-Chain/maximusd:latest
-```
-
-### Option 3: Deploy with Docker Compose (Recommended for Production)
-
-Create `docker-compose.prod.yml` on your server:
+Create a file called `docker-compose.yml`:
 
 ```yaml
 version: '3.8'
 
 services:
   maximusd:
-    image: ghcr.io/Maximus-Chain/maximusd:latest  # Use :latest-arm64 for ARM
+    image: ghcr.io/maximus-chain/maximusd:latest
     container_name: maximusd
     restart: always
     ports:
-      - "9938:9938"  # Mainnet P2P
-      - "9939:9939"  # Mainnet RPC
+      - "9938:9938"  # P2P (node connections)
+      - "9939:9939"  # RPC (API and control)
     environment:
       - NETWORK=mainnet
       - RPC_USER=admin
-      - RPC_PASSWORD=<PUT_A_STRONG_PASSWORD_HERE>
-      - RPC_PORT=9939
-      - PORT=9938
+      - RPC_PASSWORD=YOUR_PASSWORD_HERE
     volumes:
-      - /opt/maximus/data:/home/maximus/.maximuscore
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "9938"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      - maximus-data:/home/maximus/.maximuscore
     logging:
       driver: "json-file"
       options:
         max-size: "100m"
         max-file: "3"
+
+volumes:
+  maximus-data:
 ```
 
-Deploy:
+### Docker Compose Commands
 
 ```bash
-# Create data directory
-sudo mkdir -p /opt/maximus/data
-sudo chown 1000:1000 /opt/maximus/data
+# Start
+docker-compose up -d
 
-# Deploy
-docker-compose -f docker-compose.prod.yml up -d
+# Watch logs
+docker-compose logs -f
 
-# Check status
-docker-compose -f docker-compose.prod.yml logs -f
+# Stop
+docker-compose down
+
+# Start again after stopping
+docker-compose up -d
 ```
 
-### Option 4: Deploy with systemd (Production Recommended)
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NETWORK` | `mainnet` | Network: `mainnet`, `testnet`, `regtest` |
+| `RPC_USER` | `maximus` | RPC username |
+| `RPC_PASSWORD` | (auto-generated) | RPC password |
+| `RPC_PORT` | `9939` | RPC port (mainnet) |
+| `PORT` | `9938` | P2P port |
+
+## Build Your Own Image
+
+If you prefer to build instead of downloading:
+
+```bash
+# Clone the repo
+git clone https://github.com/maximus-chain/maximus.git
+cd maximus
+
+# Build
+docker build -f docker/Dockerfile -t maximus-local:latest .
+```
+
+## Server Deployment (Production)
+
+### Option 1: Direct Pull
+
+```bash
+# On your server
+docker pull ghcr.io/maximus-chain/maximusd:latest
+
+# Run
+docker run -d \
+  --name maximusd \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  -v /opt/maximus/data:/home/maximus/.maximuscore \
+  -e RPC_PASSWORD=your_secure_password \
+  ghcr.io/maximus-chain/maximusd:latest
+```
+
+### Option 2: With systemd (Auto-restart)
 
 Create `/etc/systemd/system/maximusd.service`:
 
@@ -358,7 +299,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStartPre=/usr/bin/docker pull ghcr.io/Maximus-Chain/maximusd:latest
+ExecStartPre=/usr/bin/docker pull ghcr.io/maximus-chain/maximusd:latest
 ExecStart=/usr/bin/docker run \
     --name maximusd \
     --read-only \
@@ -367,8 +308,8 @@ ExecStart=/usr/bin/docker run \
     -p 9939:9939 \
     -v /opt/maximus/data:/home/maximus/.maximuscore \
     -e RPC_USER=admin \
-    -e RPC_PASSWORD=<YOUR_PASSWORD> \
-    ghcr.io/Maximus-Chain/maximusd:latest
+    -e RPC_PASSWORD=YOUR_PASSWORD \
+    ghcr.io/maximus-chain/maximusd:latest
 ExecStop=/usr/bin/docker stop -t 60 maximusd
 ExecStopPost=/usr/bin/docker rm -f maximusd
 Restart=always
@@ -378,7 +319,7 @@ RestartSec=30
 WantedBy=multi-user.target
 ```
 
-Enable and start:
+Enable it:
 
 ```bash
 sudo systemctl daemon-reload
@@ -387,146 +328,41 @@ sudo systemctl start maximusd
 sudo systemctl status maximusd
 ```
 
----
+## Node Verification
 
-## Configuration Options
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `NETWORK` | `mainnet` | Network: `mainnet`, `testnet`, or `regtest` |
-| `RPC_USER` | `maximus` | RPC authentication username |
-| `RPC_PASSWORD` | auto-generated | RPC authentication password |
-| `RPC_PORT` | `9939` | RPC port (mainnet) |
-| `PORT` | `9938` | P2P port |
-| `MAXIMUSD_OPTS` | | Extra command line options for maximusd |
-| `USER_ID` | `1000` | UID of the maximus user inside container |
-| `GROUP_ID` | `1000` | GID of the maximus group inside container |
-
-### Example Configurations
+### Is it synced?
 
 ```bash
-# Mainnet with custom RPC credentials
-docker run -d \
-  -e RPC_USER=myuser \
-  -e RPC_PASSWORD=supersecret123 \
-  ghcr.io/Maximus-Chain/maximusd:latest
-
-# Testnet
-docker run -d \
-  -e NETWORK=testnet \
-  ghcr.io/Maximus-Chain/maximusd:latest
-
-# Regtest for development
-docker run -d \
-  -e NETWORK=regtest \
-  -e MAXIMUSD_OPTS="-printtoconsole=1 -debug=1" \
-  ghcr.io/Maximus-Chain/maximusd:latest
-
-# Disable RPC authentication (NOT FOR PRODUCTION)
-docker run -d \
-  -e RPC_PASSWORD="" \
-  ghcr.io/Maximus-Chain/maximusd:latest
-```
-
-### Volume Mounts
-
-| Mount Point | Description |
-|-------------|-------------|
-| `/home/maximus/.maximuscore` | Blockchain data and config |
-
----
-
-## Troubleshooting
-
-### Container Won't Start
-
-```bash
-# Check logs
-docker logs maximusd
-
-# Run in foreground to see errors
-docker run -it ghcr.io/Maximus-Chain/maximusd:latest
-```
-
-### RPC Connection Refused
-
-```bash
-# Check if maximusd is running
 docker exec maximusd maximus-cli getblockchaininfo
-
-# Check RPC configuration
-docker exec maximusd cat /home/maximus/.maximuscore/maximus.conf
-
-# Verify ports are exposed
-docker port maximusd
 ```
 
-### Out of Disk Space
+Look for these values:
+- `"blocks"`: number of blocks downloaded
+- `"verificationprogress"`: 0.99+ means synced
+
+### How many peers?
 
 ```bash
-# Check disk usage
-docker system df
-
-# Prune unused images and containers
-docker system prune -a
-
-# Prune volumes (WARNING: deletes blockchain data)
-docker volume prune
-```
-
-### Slow Sync
-
-```bash
-# Check peer connections
 docker exec maximusd maximus-cli getpeerinfo
-
-# Force add a peer
-docker exec maximusd maximus-cli addnode "seed.maximus.org:9938" add
-
-# Check sync progress
-docker exec maximusd maximus-cli getblockchaininfo
 ```
 
-### View Logs in Real-Time
+### How much space used?
 
 ```bash
-# All logs
-docker logs -f maximusd
-
-# Only errors
-docker logs -f maximusd 2>&1 | grep -i error
-
-# Last 100 lines
-docker logs --tail 100 maximusd
+docker exec maximusd du -sh /home/maximus/.maximuscore
 ```
 
-### Access Container Shell
+## Ports
 
-```bash
-# If running as root user in container
-docker exec -u root -it maximusd /bin/bash
-
-# As the maximus user
-docker exec -it maximusd /bin/bash
-```
-
----
-
-## Security Notes
-
-1. **Change default RPC password** - Always set a strong `RPC_PASSWORD`
-2. **Don't expose RPC to internet** - Keep port 9939 firewalled
-3. **Use TLS for RPC** - Configure RPC over TLS in production
-4. **Regular updates** - Pull latest image regularly
-5. **Backup wallet** - If using wallet features, backup regularly
-6. **Read-only mode** - Use `--read-only` flag for added security with Docker
-
----
+| Port | Protocol | Use |
+|------|----------|-----|
+| 9938 | P2P | Node-to-node connections (public) |
+| 9939 | RPC | API and control (local only) |
+| 19938 | P2P | Testnet |
+| 19939 | RPC | Testnet |
 
 ## Links
 
-- [Maximus Core GitHub](https://github.com/Maximus-Chain/maximus)
-- [Maximus Core Documentation](https://docs.maximuschain.com)
-- [Docker Documentation](https://docs.docker.com)
+- [Maximus Core GitHub](https://github.com/maximus-chain/maximus)
+- [Official Documentation](https://docs.maximuschain.com)
+- [Docker Docs](https://docs.docker.com)
