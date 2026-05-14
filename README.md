@@ -3,7 +3,6 @@ Maximus Core staging tree
 
 |CI|master|develop|
 |-|-|-|
-|Gitlab|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/master/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/master)|[![Build Status](https://gitlab.com/maximus-chain/maximus/badges/develop/pipeline.svg)](https://gitlab.com/maximus-chain/maximus/-/tree/develop)|
 |GitHub|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|[![Build](https://github.com/maximus-chain/maximus/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/maximus-chain/maximus/actions/workflows/build.yml)|
 
 https://www.maximuschain.com
