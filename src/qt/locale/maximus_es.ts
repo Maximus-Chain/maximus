@@ -1682,7 +1682,7 @@ https://www.transifex.com/projects/p/maximus/</translation>
     </message>
     <message>
         <source>Choose the default subdivision unit to show in the interface and when sending coins.</source>
-        <translation>Elegir la subdivisión predeterminada para mostrar las cuantías en la interfaz y cuando se envían maximuss.</translation>
+        <translation>Elegir la subdivisión predeterminada para mostrar las cuantías en la interfaz y cuando se envían maximus.</translation>
     </message>
     <message>
         <source>Decimal digits</source>
