@@ -63,15 +63,15 @@ docker stop maximusd && docker rm maximusd
 
 ## 🔐 Basic Security
 
-**Important:** By default, a password is created automatically. For production, use your own:
+**Important:** You must provide your own RPC credentials via `DAEMON_ARGS`:
 
 ```bash
 docker run -d \
   --name maximusd \
   -p 9938:9938 \
   -p 9939:9939 \
-  -e RPC_PASSWORD=YOUR_VERY_SECURE_PASSWORD \
-  ghcr.io/maximus-chain/maximusd:latest
+  -e DAEMON_ARGS="-rpcuser=maximus -rpcpassword=YOUR_VERY_SECURE_PASSWORD" \
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 > **Never** expose port 9939 (RPC) to the internet. It's only for local use.
@@ -87,8 +87,8 @@ docker run -d \
   --name maximusd-testnet \
   -p 19938:19938 \
   -p 19939:19939 \
-  -e NETWORK=testnet \
-  ghcr.io/maximus-chain/maximusd:latest
+  -e DAEMON_ARGS="-testnet=1 -rpcuser=maximus -rpcpassword=your_password" \
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ---
@@ -215,9 +215,7 @@ services:
       - "9938:9938"  # P2P (node connections)
       - "9939:9939"  # RPC (API and control)
     environment:
-      - NETWORK=mainnet
-      - RPC_USER=admin
-      - RPC_PASSWORD=YOUR_PASSWORD_HERE
+      - DAEMON_ARGS=-rpcuser=admin -rpcpassword=YOUR_PASSWORD_HERE
     volumes:
       - maximus-data:/home/maximus/.maximuscore
     logging:
@@ -250,11 +248,58 @@ docker-compose up -d
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `NETWORK` | `mainnet` | Network: `mainnet`, `testnet`, `regtest` |
-| `RPC_USER` | `maximus` | RPC username |
-| `RPC_PASSWORD` | (auto-generated) | RPC password |
-| `RPC_PORT` | `9939` | RPC port (mainnet) |
-| `PORT` | `9938` | P2P port |
+| `DAEMON_ARGS` | | All `maximusd` options via CLI args (e.g., `-rpcuser=x -rpcpassword=y`) |
+| `SNAPSHOT_URL` | | URL to download chainstate snapshot for fast sync (`.tar.xz`, `.tar.gz`, `.zip`) |
+
+### Using DAEMON_ARGS
+
+All configuration is passed as command-line arguments via `DAEMON_ARGS`:
+
+```bash
+# Mainnet with RPC credentials
+docker run -d \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  -e DAEMON_ARGS="-rpcuser=maximus -rpcpassword=your_secure_password" \
+  ghcr.io/Maximus-Chain/maximusd:latest
+
+# Testnet
+docker run -d \
+  -p 19938:19938 \
+  -p 19939:19939 \
+  -e DAEMON_ARGS="-testnet=1 -rpcuser=maximus -rpcpassword=your_secure_password" \
+  ghcr.io/Maximus-Chain/maximusd:latest
+
+# With custom config file
+docker run -d \
+  -v /path/to/maximus.conf:/home/maximus/.maximuscore/maximus.conf \
+  -e DAEMON_ARGS="-conf=/home/maximus/.maximuscore/maximus.conf" \
+  ghcr.io/Maximus-Chain/maximusd:latest
+```
+
+### Using SNAPSHOT_URL for Fast Sync
+
+Download a pre-synced chainstate snapshot to skip initial synchronization:
+
+```bash
+# Mainnet with snapshot
+docker run -d \
+  -p 9938:9938 \
+  -p 9939:9939 \
+  -e DAEMON_ARGS="-rpcuser=maximus -rpcpassword=your_secure_password" \
+  -e SNAPSHOT_URL="https://example.com/maximus-snapshot.tar.xz" \
+  ghcr.io/Maximus-Chain/maximusd:latest
+
+# Testnet with snapshot
+docker run -d \
+  -p 19938:19938 \
+  -p 19939:19939 \
+  -e DAEMON_ARGS="-testnet=1 -rpcuser=maximus -rpcpassword=your_password" \
+  -e SNAPSHOT_URL="https://example.com/maximus-testnet-snapshot.tar.xz" \
+  ghcr.io/Maximus-Chain/maximusd:latest
+```
+
+Supported formats: `.tar.xz`, `.tar.gz`, `.zip`
 
 ## Build Your Own Image
 
@@ -283,8 +328,8 @@ docker run -d \
   -p 9938:9938 \
   -p 9939:9939 \
   -v /opt/maximus/data:/home/maximus/.maximuscore \
-  -e RPC_PASSWORD=your_secure_password \
-  ghcr.io/maximus-chain/maximusd:latest
+  -e DAEMON_ARGS="-rpcuser=maximus -rpcpassword=your_secure_password" \
+  ghcr.io/Maximus-Chain/maximusd:latest
 ```
 
 ### Option 2: With systemd (Auto-restart)
@@ -307,9 +352,8 @@ ExecStart=/usr/bin/docker run \
     -p 9938:9938 \
     -p 9939:9939 \
     -v /opt/maximus/data:/home/maximus/.maximuscore \
-    -e RPC_USER=admin \
-    -e RPC_PASSWORD=YOUR_PASSWORD \
-    ghcr.io/maximus-chain/maximusd:latest
+    -e DAEMON_ARGS="-rpcuser=admin -rpcpassword=YOUR_PASSWORD" \
+    ghcr.io/Maximus-Chain/maximusd:latest
 ExecStop=/usr/bin/docker stop -t 60 maximusd
 ExecStopPost=/usr/bin/docker rm -f maximusd
 Restart=always
