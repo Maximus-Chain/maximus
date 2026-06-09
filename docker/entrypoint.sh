@@ -40,7 +40,7 @@ bootstrap_snapshot() {
     fi
 
     # Skip if already synced (chainstate exists)
-    if [ -d "${DATA_DIR}/chainstate" ]; then
+    if [ -d "${DATA_DIR}/chainstate" ] || [ -d "${DATA_DIR}/testnet3/chainstate" ]; then
         echo "Chainstate already exists, skipping snapshot bootstrap"
         return 0
     fi
