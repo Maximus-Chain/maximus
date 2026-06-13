@@ -839,7 +839,7 @@
         <location line="+554"/>
         <source>%n active connection(s) to Maximus network</source>
         <translation type="finished">
-            <numerusform>%n aktiv forbindelse til Maximus-netværket>/numerusform>
+            <numerusform>%n aktiv forbindelse til Maximus-netværket</numerusform>
             <numerusform>%n aktive forbindelser til Maximus-netværket</numerusform>
         </translation>
     </message>
@@ -2502,7 +2502,7 @@
     <message>
         <location line="+34"/>
         <source>Amount and Rounds:</source>
-        <translation>Beløb & Runder:</translation>
+        <translation>Beløb &amp; Runder:</translation>
     </message>
     <message>
         <location line="+7"/>
@@ -6240,7 +6240,7 @@ Gå til Fil &gt; Åbn tegnebog for at indlæse en tegnebog.
     <message>
         <location line="+1"/>
         <source>No proxy server specified. Use -proxy=&lt;ip&gt; or -proxy=&lt;ip:port&gt;.</source>
-        <translation>Ingen proxyserver angivet. Brug -proxy=<ip> eller -proxy=<ip:port>.</translation>
+        <translation>Ingen proxyserver angivet. Brug -proxy=&lt;ip&gt; eller -proxy=&lt;ip:port&gt;.</translation>
     </message>
     <message>
         <location line="+1"/>
