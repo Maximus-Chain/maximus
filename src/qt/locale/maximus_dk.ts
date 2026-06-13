@@ -838,8 +838,8 @@
     <message numerus="yes">
         <location line="+554"/>
         <source>%n active connection(s) to Maximus network</source>
-        <translation>
-            <numerusform>%n aktiv forbindelse til Maximus-netværket>
+        <translation type="finished">
+            <numerusform>%n aktiv forbindelse til Maximus-netværket>/numerusform>
             <numerusform>%n aktive forbindelser til Maximus-netværket</numerusform>
         </translation>
     </message>
