@@ -125,6 +125,7 @@ RUN apt-get update && \
   ca-certificates \
   curl \
   netcat \
+  unzip \
   libboost-system1.74.0 \
   libboost-filesystem1.74.0 \
   libevent-2.1-7 \

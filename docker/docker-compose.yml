@@ -17,9 +17,7 @@ services:
       - "9938:9938"   # Mainnet RPC
       - "9939:9939"   # Mainnet P2P
     environment:
-      - NETWORK=mainnet
-      - RPC_USER=maximus
-      - RPC_PASSWORD=changeme_secure_password_here
+      - DAEMON_ARGS=-rpcuser=maximus -rpcpassword=changeme_secure_password_here
     expose:
       - "9938"   # Mainnet RPC
       - "9939"   # Mainnet P2P
@@ -51,9 +49,7 @@ services:
       - "19938:19938" # Testnet RPC
       - "19939:19939" # Testnet P2P
     environment:
-      - NETWORK=testnet
-      - RPC_USER=maximus
-      - RPC_PASSWORD=changeme_secure_password_here
+      - DAEMON_ARGS=-testnet=1 -rpcuser=maximus -rpcpassword=changeme_secure_password_here
     expose:
       - "19938" # Testnet RPC
       - "19939" # Testnet P2P
@@ -74,7 +70,7 @@ services:
       - RPC_HOST=maximusd
       - RPC_PORT=9938
     entrypoint: /usr/local/bin/maximus-cli
-    command: -rpcconnect=maximusd -rpcport=9938 getnetworkinfo
+    command: -rpcconnect=maximusd -rpcport=9938 -rpcuser=maximus -rpcpassword=changeme_secure_password_here getnetworkinfo
     depends_on:
       - maximusd
     networks:
