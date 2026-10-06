@@ -425,3 +425,10 @@ To calculate `m_assumed_chain_state_size`:
 Notes:
 - When taking the size for `m_assumed_blockchain_size`, there's no need to exclude the `/chainstate` directory since it's a guideline value and an overhead will be added anyway.
 - The expected overhead for growth may change over time, so it may not be the same value as last release; pay attention to that when changing the variables.
+
+## Branch policy
+
+- master is release-only. The shared node and the Docker image build
+  from it, so it only moves when a new binary is released.
+- All other work goes to Testnet. Merge Testnet into master only when
+  cutting a release, then tag it.
