@@ -1,46 +1,47 @@
 # Known Issues / Future Work
 
-Running list of deferred items, unresolved edge cases, and larger
-follow-up projects identified during development. Not urgent, not
-blocking any release, but worth not losing track of.
+Running list of deferred items and follow-up projects. Not blocking
+any release.
 
-## Deferred fixes
+## Next release plan (no binaries planned before next year)
 
-- Connection-burst pacing in ThreadOpenMasternodeConnections (net.cpp):
-  can open 30-50+ masternode connections in a tight burst when a DKG
-  session initializes. Contributed to OOM crashes on memory-constrained
-  nodes. Proposed fix: increase post-connect sleep from 100ms to 250ms.
-  Never implemented or tested.
+Order matters: one risky change at a time, so any problem found in
+soak-testing can be traced to a single cause.
 
-- MIN_MASTERNODE_PROTO_VERSION gap (70230 vs Dash's 70240): Dash's
-  70240 corresponds to a backported request-tracking overhaul (Bitcoin
-  PR #19988, merged into Dash 2026-07-24), which explicitly covers
-  quorum messages. Not in this codebase. Worth evaluating as a
-  backport candidate.
+### Phase 1 - low-risk changes
+- PROTOCOL_VERSION 70231 -> 70232 in src/version.h. No behavior change
+  on its own. Leave MIN_PEER_PROTO_VERSION alone in this release.
+- Backport Dash v23.1.7 DKG security fixes: accept pushed DKG messages
+  only from verified masternodes, bound their size, validate structure
+  before retaining, and fix the null-pointer dereference when a
+  contribution share's verification vector was never received.
+  Needs a real diff against Dash's fix before implementing.
 
-- DKG message-handling consolidation: Dash consolidates DKG message
-  handling into one templated function (3 MarkBadMember call sites).
-  This codebase still has the older duplicated structure (9 call
-  sites). Not a known bug, but worth reducing eventually.
+### Phase 2 - IPv6 DKG fairness (custom work, Dash has no IPv6 support)
+- Goal: an IPv4-only and an IPv6-only masternode should not punish each
+  other in DKG when they structurally cannot connect. Offline nodes of
+  any address family are still punished normally.
+- Idea: exempt only address-family mismatches from badConnection in
+  dkgsession.cpp.
+- Status (Oct 2026): spork active since Aug 29, ten IPv6 masternodes
+  registered and valid, but not yet checked whether any are running in
+  quorums. No evidence of the problem yet. Get a real case first, by
+  watching an active IPv6 node or reproducing on testnet, before
+  writing code.
 
-## Build system / tooling
+### Phase 3 - version gating (two releases)
+- Release N ships PROTOCOL_VERSION 70232.
+- Release N+1, once adoption is high, raises MIN_PEER_PROTO_VERSION to
+  70232. Never both in one release, there is no spork safety valve.
+- Lower urgency now: adoption of v1.2.3 is about 100%.
 
-- CMake migration: Bitcoin Core fully migrated to CMake. Dash has NOT
-  followed - still Autotools-based. No external pressure to migrate.
-  Revisit only if build fragility becomes a frequent cost, or before
-  a Qt6 upgrade.
-
-- Qt6 upgrade: currently on Qt 5.15.19. Bitcoin's Qt6 migration
-  depended on their CMake migration first - don't attempt Qt6 before
-  CMake here either.
-
-- native_clang pinned at 10.0.1, used for macOS cross-compilation.
-  Compliant with the project's stated Clang 8+ minimum, just old.
-  Target Clang 16-17 if upgrading deliberately.
-
-## Research / long-term
-
-- Post-quantum cryptography: no mature PQC migration path exists yet
-  in the Bitcoin/Dash ecosystem. Not urgent, but a real long-term risk
-  to ECDSA/BLS signatures. Revisit if/when Bitcoin or Dash publish a
-  concrete plan.
+## Later
+- Full Dash DKG restructure (llmq/ + active/ split, static AddLLMQ()
+  instead of UpdateLLMQParams). Do after Phase 2 is proven. Carry the
+  IPv6 logic across at that point.
+- InstantSend performance backport from Dash v23.1.0.
+- Connection-burst pacing in net.cpp (100ms -> 250ms post-connect
+  sleep). Never implemented or tested.
+- CMake migration, then Qt6. Dash has done neither (Qt 5.15.18).
+- native_clang is pinned at 10.0.1. Aim for Clang 16-17 if upgrading.
+- Post-quantum cryptography. No Bitcoin or Dash plan exists yet.
