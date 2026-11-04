@@ -39,7 +39,11 @@ terms of the MIT license. A copy of the license can be found in the file
 #include <stdatomic.h>
 #define  mi_atomic(name)        atomic_##name
 #define  mi_memory_order(name)  memory_order_##name
+#if defined(ATOMIC_VAR_INIT)
 #define  MI_ATOMIC_VAR_INIT(x)  ATOMIC_VAR_INIT(x)
+#else
+#define  MI_ATOMIC_VAR_INIT(x)  x  // C23 removed ATOMIC_VAR_INIT
+#endif
 #endif
 
 // Various defines for all used memory orders in mimalloc
