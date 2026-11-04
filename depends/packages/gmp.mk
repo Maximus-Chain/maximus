@@ -6,6 +6,8 @@ $(package)_sha256_hash=eae9326beb4158c386e39a356818031bd28f3124cf915f8c5b1dc4c7a
 
 define $(package)_set_vars
 $(package)_config_opts+=--enable-cxx --enable-fat --with-pic --disable-shared
+# gmp's configure tests use old C syntax that GCC 15 (C23 default) rejects
+$(package)_cflags+=-std=gnu17
 $(package)_cflags_armv7l_linux+=-march=armv7-a
 $(package)_cflags_aarch64_darwin+=-march=armv8-a
 endef
