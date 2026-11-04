@@ -354,6 +354,9 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
             }
             printf("FOUND_NONCE {%d, 0x%08x},\n", blockinfo[i].extranonce, pblock->nNonce);
         }
+        // Blocks are created 72s apart without waiting, so move the mock clock along with them.
+        // Otherwise they run ahead of the clock by more than MAX_FUTURE_BLOCK_TIME (600s).
+        SetMockTime(pblock->nTime);
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         BOOST_CHECK(Assert(m_node.chainman)->ProcessNewBlock(chainparams, shared_pblock, true, nullptr));
         pblock->hashPrevBlock = pblock->GetHash();
