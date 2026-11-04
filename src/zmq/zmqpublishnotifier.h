@@ -5,6 +5,7 @@
 #ifndef BITCOIN_ZMQ_ZMQPUBLISHNOTIFIER_H
 #define BITCOIN_ZMQ_ZMQPUBLISHNOTIFIER_H
 
+#include <cstdint>
 #include <zmq/zmqabstractnotifier.h>
 
 class CBlockIndex;

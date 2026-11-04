@@ -6,6 +6,7 @@
 #define BITCOIN_CHAINPARAMSBASE_H
 
 #include <memory>
+#include <cstdint>
 #include <string>
 
 class ArgsManager;
