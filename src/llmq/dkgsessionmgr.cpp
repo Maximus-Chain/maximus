@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <llmq/debug.h>
+#include <llmq/dkgsession.h>
 #include <llmq/dkgsessionmgr.h>
 #include <llmq/options.h>
 #include <llmq/params.h>
@@ -20,6 +21,71 @@
 
 namespace llmq
 {
+namespace {
+// Upper bound on the serialized size of a well-formed DKG message for the given quorum
+// params. Rejects oversized payloads before any deserialization or retention.
+size_t MaxDKGMessageSize(const std::string& msg_type, const Consensus::LLMQParams& params)
+{
+    constexpr size_t COMPACT = 5;
+    constexpr size_t PREFIX = 1 + 32 + 32; // llmqType + quorumHash + proTxHash
+    constexpr size_t PUBKEY = BLS_CURVE_PUBKEY_SIZE;
+    constexpr size_t SIG = BLS_CURVE_SIG_SIZE;
+    constexpr size_t SECKEY = BLS_CURVE_SECKEY_SIZE;
+    constexpr size_t BLOB = COMPACT + 128;
+    constexpr size_t SLACK = 1024;
+    constexpr size_t HARD_CEILING = size_t{1} << 20;
+
+    const size_t size = params.size > 0 ? static_cast<size_t>(params.size) : 0;
+    const size_t threshold = params.threshold > 0 ? static_cast<size_t>(params.threshold) : 0;
+
+    size_t cap = 0;
+    if (msg_type == NetMsgType::QCONTRIB) {
+        cap = PREFIX + (COMPACT + threshold * PUBKEY) + (PUBKEY + 32 + COMPACT + size * BLOB) + SIG;
+    } else if (msg_type == NetMsgType::QJUSTIFICATION) {
+        cap = PREFIX + (COMPACT + size * (4 + SECKEY)) + SIG;
+    } else if (msg_type == NetMsgType::QCOMPLAINT) {
+        cap = PREFIX + 2 * (COMPACT + (size + 7) / 8) + SIG;
+    } else if (msg_type == NetMsgType::QPCOMMITMENT) {
+        cap = PREFIX + (COMPACT + (size + 7) / 8) + PUBKEY + 32 + 2 * SIG;
+    } else {
+        return HARD_CEILING;
+    }
+    cap += SLACK;
+    return cap < HARD_CEILING ? cap : HARD_CEILING;
+}
+
+// Cheap param-only structural validation on a COPY of the payload (caller's bytes untouched).
+bool CheckDKGMessageStructure(const std::string& msg_type, const CDataStream& vRecv, const Consensus::LLMQParams& params)
+{
+    const size_t size = params.size > 0 ? static_cast<size_t>(params.size) : 0;
+    const size_t threshold = params.threshold > 0 ? static_cast<size_t>(params.threshold) : 0;
+    try {
+        CDataStream s(vRecv);
+        if (msg_type == NetMsgType::QCONTRIB) {
+            CDKGContribution qc;
+            s >> qc;
+            return qc.vvec != nullptr && qc.vvec->size() == threshold &&
+                   qc.contributions != nullptr && qc.contributions->blobs.size() == size;
+        } else if (msg_type == NetMsgType::QCOMPLAINT) {
+            CDKGComplaint qc;
+            s >> qc;
+            return qc.badMembers.size() == size && qc.complainForMembers.size() == size;
+        } else if (msg_type == NetMsgType::QJUSTIFICATION) {
+            CDKGJustification qj;
+            s >> qj;
+            return qj.contributions.size() <= size;
+        } else if (msg_type == NetMsgType::QPCOMMITMENT) {
+            CDKGPrematureCommitment qc;
+            s >> qc;
+            return qc.validMembers.size() == size;
+        }
+        return false;
+    } catch (const std::exception&) {
+        return false;
+    }
+}
+} // anonymous namespace
+
 static const std::string DB_VVEC = "qdkg_V";
 static const std::string DB_SKCONTRIB = "qdkg_S";
 static const std::string DB_ENC_CONTRIB = "qdkg_E";
@@ -202,6 +268,12 @@ PeerMsgRet CDKGSessionManager::ProcessMessage(CNode& pfrom, PeerManager* peerman
         return tl::unexpected{10};
     }
 
+    // Pushed DKG messages retain attacker-controlled payloads, so they must come from an
+    // MNAuth-verified masternode (qwatch is unauthenticated and must not bypass this).
+    if (pfrom.GetVerifiedProRegTxHash().IsNull()) {
+        return tl::unexpected{10};
+    }
+
     if (vRecv.empty()) {
         return tl::unexpected{100};
     }
@@ -261,6 +333,14 @@ PeerMsgRet CDKGSessionManager::ProcessMessage(CNode& pfrom, PeerManager* peerman
     }
 
     assert(quorumIndex != -1);
+
+    if (vRecv.size() > MaxDKGMessageSize(msg_type, llmq_params)) {
+        return tl::unexpected{100};
+    }
+    if (!CheckDKGMessageStructure(msg_type, vRecv, llmq_params)) {
+        return tl::unexpected{100};
+    }
+
     WITH_LOCK(cs_indexedQuorumsCache, indexedQuorumsCache[llmqType].insert(quorumHash, quorumIndex));
     dkgSessionHandlers.at(std::make_pair(llmqType, quorumIndex)).ProcessMessage(pfrom, peerman, msg_type, vRecv);
     return {};
