@@ -26,6 +26,43 @@ make install # optional
 
 This will build maximus-qt as well, if the dependencies are met.
 
+Release build with depends (Ubuntu 22.04 and 26.04)
+---------------------
+
+This is the recipe used for releases, including the Qt wallet. The `depends`
+system builds all libraries (UPnP included) and links them statically, so users
+do not need to install any extra libraries. The same commands are used on
+Ubuntu 22.04 and Ubuntu 26.04.
+
+Install the build tools (on a fresh Ubuntu):
+
+    sudo apt-get install -y build-essential libtool autotools-dev automake pkg-config bsdmainutils python3 curl bison patch cmake git m4 bzip2 xz-utils flex gperf python3-setuptools xutils-dev
+
+Build:
+
+```bash
+cd depends
+make HOST=x86_64-pc-linux-gnu -j$(nproc)
+cd ..
+./autogen.sh
+CONFIG_SITE=$PWD/depends/x86_64-pc-linux-gnu/share/config.site ./configure
+make -j$(nproc)
+./src/test/test_maximus   # optional: run the unit tests
+```
+
+Notes:
+
+- Building Qt takes the longest part of the depends build.
+- Always set `CONFIG_SITE` when running `./configure`, otherwise the depends
+  output is ignored.
+- Do not pass `--without-miniupnpc` for release builds. UPnP is built in.
+- For a daemon only build (no Qt), add `NO_QT=1` to the depends `make` command.
+- To start over: run `make distclean` in the top directory, then
+  `make clean` in `depends`. `make clean` keeps the downloaded sources,
+  `make clean-all` removes them too.
+- To test the wallet on a server without a screen, install `xvfb` and run
+  `xvfb-run -a ./src/qt/maximus-qt -regtest -datadir=/tmp/maxitest`.
+
 Dependencies
 ---------------------
 
