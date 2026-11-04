@@ -21,13 +21,25 @@ soak-testing can be traced to a single cause.
 - Goal: an IPv4-only and an IPv6-only masternode should not punish each
   other in DKG when they structurally cannot connect. Offline nodes of
   any address family are still punished normally.
-- Idea: exempt only address-family mismatches from badConnection in
-  dkgsession.cpp.
-- Status (Oct 2026): spork active since Aug 29, ten IPv6 masternodes
-  registered and valid, but not yet checked whether any are running in
-  quorums. No evidence of the problem yet. Get a real case first, by
-  watching an active IPv6 node or reproducing on testnet, before
-  writing code.
+- Why it is needed: with SPORK_21 (all quorum members connected)
+  active, a node that has no connection to a member marks it
+  badConnection and complains about it, which leads to PoSe
+  punishment. An IPv4-only node never connects to an IPv6-only member,
+  so IPv6 masternodes would be punished. This follows from
+  CDKGSession::VerifyConnectionAndMinProtoVersions, so the fix is
+  needed before SPORK_21 can be fully on for IPv6 masternodes.
+- Idea: in dkgsession.cpp, skip badConnection (both "not connected to
+  us" and "failed to connect too many times") when the member's
+  registered address family differs from ours. Keep the minimum
+  protocol version check as it is.
+- Limits: it only helps once most nodes have upgraded, since old nodes
+  still complain. It does not create connectivity, so a dual-stack
+  member must relay between the two families. Detection of really
+  offline IPv6 nodes by IPv4 nodes gets weaker.
+- Status (Nov 2026): spork active since Aug 29, ten IPv6 masternodes
+  registered and valid, not confirmed running in quorums. Not yet
+  reproduced on a live network. Test on testnet with a mix of
+  IPv4-only and IPv6 members.
 
 ### Phase 3 - version gating (two releases)
 - Release N ships PROTOCOL_VERSION 70232.
