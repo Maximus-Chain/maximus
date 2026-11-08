@@ -59,13 +59,18 @@ bool CheckDKGMessageStructure(const std::string& msg_type, const CDataStream& vR
 {
     const size_t size = params.size > 0 ? static_cast<size_t>(params.size) : 0;
     const size_t threshold = params.threshold > 0 ? static_cast<size_t>(params.threshold) : 0;
+    const size_t min_size = params.minSize > 0 ? static_cast<size_t>(params.minSize) : 0;
     try {
         CDataStream s(vRecv);
         if (msg_type == NetMsgType::QCONTRIB) {
             CDKGContribution qc;
             s >> qc;
+            // A quorum may have fewer members than params.size (down to params.minSize);
+            // the exact per-session count is enforced later by PreVerifyMessage().
             return qc.vvec != nullptr && qc.vvec->size() == threshold &&
-                   qc.contributions != nullptr && qc.contributions->blobs.size() == size;
+                   qc.contributions != nullptr &&
+                   qc.contributions->blobs.size() <= size &&
+                   qc.contributions->blobs.size() >= min_size;
         } else if (msg_type == NetMsgType::QCOMPLAINT) {
             CDKGComplaint qc;
             s >> qc;
@@ -271,6 +276,7 @@ PeerMsgRet CDKGSessionManager::ProcessMessage(CNode& pfrom, PeerManager* peerman
     // Pushed DKG messages retain attacker-controlled payloads, so they must come from an
     // MNAuth-verified masternode (qwatch is unauthenticated and must not bypass this).
     if (pfrom.GetVerifiedProRegTxHash().IsNull()) {
+        LogPrint(BCLog::LLMQ_DKG, "CDKGSessionManager::%s -- rejecting %s from peer=%d: not MNAuth-verified\n", __func__, msg_type, pfrom.GetId());
         return tl::unexpected{10};
     }
 
@@ -335,9 +341,11 @@ PeerMsgRet CDKGSessionManager::ProcessMessage(CNode& pfrom, PeerManager* peerman
     assert(quorumIndex != -1);
 
     if (vRecv.size() > MaxDKGMessageSize(msg_type, llmq_params)) {
+        LogPrint(BCLog::LLMQ_DKG, "CDKGSessionManager::%s -- rejecting %s from peer=%d: oversized (%d > %d)\n", __func__, msg_type, pfrom.GetId(), vRecv.size(), MaxDKGMessageSize(msg_type, llmq_params));
         return tl::unexpected{100};
     }
     if (!CheckDKGMessageStructure(msg_type, vRecv, llmq_params)) {
+        LogPrint(BCLog::LLMQ_DKG, "CDKGSessionManager::%s -- rejecting %s from peer=%d: failed structure check\n", __func__, msg_type, pfrom.GetId());
         return tl::unexpected{100};
     }
 
