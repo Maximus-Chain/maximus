@@ -1131,10 +1131,16 @@ class MaximusTestFramework(BitcoinTestFramework):
         self.wait_for_sporks_same()
 
     def activate_dip0024(self, expected_activation_height=None):
-        self.activate_by_name('dip0024', expected_activation_height)
+        # Maximus regtest activates DIP0024 at a fixed height (350), not as a mining event at a Dash height
+        if softfork_active(self.nodes[0], 'dip0024'):
+            return
+        self.activate_by_name('dip0024', None)
 
     def activate_v19(self, expected_activation_height=None):
-        self.activate_by_name('v19', expected_activation_height)
+        # Maximus regtest activates v19 at a fixed height (350), not as a mining event at a Dash height
+        if softfork_active(self.nodes[0], 'v19'):
+            return
+        self.activate_by_name('v19', None)
 
     def activate_v20(self, expected_activation_height=None):
         self.activate_by_name('v20', expected_activation_height)
