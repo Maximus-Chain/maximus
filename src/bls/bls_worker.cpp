@@ -712,7 +712,8 @@ std::future<bool> CBLSWorker::AsyncVerifyContributionShare(const CBLSId& forId,
                                                            const BLSVerificationVectorPtr& vvec,
                                                            const CBLSSecretKey& skContribution)
 {
-    if (!forId.IsValid() || !VerifyVerificationVector(*vvec)) {
+    // vvec may be null if the member's contribution was never received; treat as failed verification
+    if (!forId.IsValid() || vvec == nullptr || !VerifyVerificationVector(*vvec)) {
         auto p = BuildFutureDoneCallback<bool>();
         p.first(false);
         return std::move(p.second);

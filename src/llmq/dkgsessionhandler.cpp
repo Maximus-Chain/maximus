@@ -378,6 +378,13 @@ std::set<NodeId> BatchVerifyMessageSigs(CDKGSession& session, const std::vector<
             continue;
         }
 
+        // An invalid signature must never reach AggregateInsecure(), which asserts validity.
+        // Mark the sender bad and skip. 'first' tracks the first *accumulated* sig.
+        if (!msg.sig.IsValid()) {
+            ret.emplace(p.first);
+            continue;
+        }
+
         if (first) {
             aggSig = msg.sig;
         } else {
@@ -401,6 +408,10 @@ std::set<NodeId> BatchVerifyMessageSigs(CDKGSession& session, const std::vector<
         messageHashes.emplace_back(msgHash);
     }
     if (!revertToSingleVerification) {
+        if (pubKeys.empty()) {
+            // every message had an unknown member or invalid signature; senders are already in ret
+            return ret;
+        }
         if (aggSig.VerifyInsecureAggregated(pubKeys, messageHashes)) {
             // all good
             return ret;
@@ -426,6 +437,11 @@ std::set<NodeId> BatchVerifyMessageSigs(CDKGSession& session, const std::vector<
 
         const auto& msg = *p.second;
         auto member = session.GetMember(msg.proTxHash);
+        if (member == nullptr || !msg.sig.IsValid()) {
+            // the early break on a duplicate hash can leave messages unexamined; stay defensive
+            ret.emplace(p.first);
+            continue;
+        }
         bool valid = msg.sig.VerifyInsecure(member->dmn->pdmnState->pubKeyOperator.Get(), msg.GetSignHash());
         if (!valid) {
             ret.emplace(p.first);

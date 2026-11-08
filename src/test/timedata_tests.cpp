@@ -12,6 +12,7 @@
 #include <util/translation.h>
 #include <warnings.h>
 
+#include <algorithm>
 #include <string>
 
 #include <boost/test/unit_test.hpp>
@@ -58,13 +59,17 @@ BOOST_AUTO_TEST_CASE(addtimedata)
 {
     BOOST_CHECK_EQUAL(GetTimeOffset(), 0);
 
+    // AddTimeData() only warns when no peer is within 5 minutes of our clock, so the
+    // large offset must be above 5 minutes as well as above DEFAULT_MAX_TIME_ADJUSTMENT.
+    const int64_t LARGE_OFFSET = std::max<int64_t>(DEFAULT_MAX_TIME_ADJUSTMENT + 1, 5 * 60 + 1);
+
     //Part 1: Add large offsets to test a warning message that our clock may be wrong.
-    MultiAddTimeData(3, DEFAULT_MAX_TIME_ADJUSTMENT + 1);
+    MultiAddTimeData(3, LARGE_OFFSET);
     // Filter size is 1 + 3 = 4: It is always initialized with a single element (offset 0)
 
     {
         ASSERT_DEBUG_LOG("Please check that your computer's date and time are correct!");
-        MultiAddTimeData(1, DEFAULT_MAX_TIME_ADJUSTMENT + 1); //filter size 5
+        MultiAddTimeData(1, LARGE_OFFSET); //filter size 5
     }
 
     BOOST_CHECK(GetWarnings(true).original.find("clock is wrong") != std::string::npos);

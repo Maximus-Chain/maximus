@@ -230,6 +230,14 @@ bool CDKGSession::PreVerifyMessage(const CDKGContribution& qc, bool& retBan) con
         return false;
     }
 
+    // Cheap structural validity check (not the batched verification): keeps an invalid
+    // signature from ever reaching AggregateInsecure().
+    if (!qc.sig.IsValid()) {
+        logger.Batch("invalid signature");
+        retBan = true;
+        return false;
+    }
+
     if (qc.contributions->blobs.size() != members.size()) {
         logger.Batch("invalid contributions count");
         retBan = true;
@@ -548,6 +556,14 @@ bool CDKGSession::PreVerifyMessage(const CDKGComplaint& qc, bool& retBan) const
         return false;
     }
 
+    // Cheap structural validity check (not the batched verification): keeps an invalid
+    // signature from ever reaching AggregateInsecure().
+    if (!qc.sig.IsValid()) {
+        logger.Batch("invalid signature");
+        retBan = true;
+        return false;
+    }
+
     if (qc.badMembers.size() != (size_t)params.size) {
         logger.Batch("invalid badMembers bitset size");
         retBan = true;
@@ -738,6 +754,14 @@ bool CDKGSession::PreVerifyMessage(const CDKGJustification& qj, bool& retBan) co
     auto* member = GetMember(qj.proTxHash);
     if (member == nullptr) {
         logger.Batch("justifier not a member of this quorum, rejecting justification");
+        retBan = true;
+        return false;
+    }
+
+    // Cheap structural validity check (not the batched verification): keeps an invalid
+    // signature from ever reaching AggregateInsecure().
+    if (!qj.sig.IsValid()) {
+        logger.Batch("invalid signature");
         retBan = true;
         return false;
     }

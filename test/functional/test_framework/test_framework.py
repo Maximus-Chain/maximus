@@ -1007,8 +1007,8 @@ class BitcoinTestFramework(metaclass=BitcoinTestMetaClass):
         """Checks whether the wallet module was compiled with BDB support."""
         return self.config["components"].getboolean("USE_BDB")
 
-MASTERNODE_COLLATERAL = 1000
-EVONODE_COLLATERAL = 4000
+MASTERNODE_COLLATERAL = 350
+EVONODE_COLLATERAL = 1400
 
 class MasternodeInfo:
     def __init__(self, proTxHash, ownerAddr, votingAddr, rewards_address, operator_reward, pubKeyOperator, keyOperator, collateral_address, collateral_txid, collateral_vout, addr, evo=False):
@@ -1049,7 +1049,7 @@ class MaximusTestFramework(BitcoinTestFramework):
             extra_args = [[]] * num_nodes
         assert_equal(len(extra_args), num_nodes)
         self.extra_args = [copy.deepcopy(a) for a in extra_args]
-        self.extra_args[0] += ["-sporkkey=cP4EKFyJsHT39LDqgdcB43Y3YXjNyjb5Fuas1GQSeAtjnZWmZEQK"]
+        self.extra_args[0] += ["-sporkkey=cQ4wWXtT5KyUij1W8EZ62rv1ZjPdBKMCwBEqE8FyHZMY1PtMQpX5"]
         self.fast_dip3_enforcement = fast_dip3_enforcement
         if fast_dip3_enforcement:
             for i in range(0, num_nodes):
@@ -1131,10 +1131,16 @@ class MaximusTestFramework(BitcoinTestFramework):
         self.wait_for_sporks_same()
 
     def activate_dip0024(self, expected_activation_height=None):
-        self.activate_by_name('dip0024', expected_activation_height)
+        # Maximus regtest activates DIP0024 at a fixed height (350), not as a mining event at a Dash height
+        if softfork_active(self.nodes[0], 'dip0024'):
+            return
+        self.activate_by_name('dip0024', None)
 
     def activate_v19(self, expected_activation_height=None):
-        self.activate_by_name('v19', expected_activation_height)
+        # Maximus regtest activates v19 at a fixed height (350), not as a mining event at a Dash height
+        if softfork_active(self.nodes[0], 'v19'):
+            return
+        self.activate_by_name('v19', None)
 
     def activate_v20(self, expected_activation_height=None):
         self.activate_by_name('v20', expected_activation_height)

@@ -19,15 +19,16 @@
  * Maximum amount of time that a block timestamp is allowed to exceed the
  * current network-adjusted time before the block will be accepted.
  */
-static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
+static constexpr int64_t MAX_FUTURE_BLOCK_TIME = 10 * 60;
 
 /**
  * Timestamp window used as a grace period by code that compares external
  * timestamps (such as timestamps passed to RPCs, or wallet key creation times)
  * to block timestamps. This should be set at least as high as
- * MAX_FUTURE_BLOCK_TIME.
+ * MAX_FUTURE_BLOCK_TIME. It is kept at 2 hours on purpose, so that wallet
+ * rescans behave as before and old blocks are still found.
  */
-static constexpr int64_t TIMESTAMP_WINDOW = MAX_FUTURE_BLOCK_TIME;
+static constexpr int64_t TIMESTAMP_WINDOW = 2 * 60 * 60;
 
 /**
  * Maximum gap between node time and block time used
