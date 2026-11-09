@@ -43,6 +43,13 @@ public:
 
 static std::array<std::atomic<double>, ToUnderlying(DKGError::type::_COUNT)> simDkgErrorMap{};
 
+// True if one address is plain IPv4 and the other plain IPv6. Any other
+// address type is treated as "no mismatch" and keeps the old behaviour.
+static bool IsAddressFamilyMismatch(const CService& a, const CService& b)
+{
+    return (a.IsIPv4() && b.IsIPv6()) || (a.IsIPv6() && b.IsIPv4());
+}
+
 void SetSimulatedDKGErrorRate(DKGError::type type, double rate)
 {
     if (type >= DKGError::type::_COUNT) return;
@@ -465,7 +472,13 @@ void CDKGSession::VerifyConnectionAndMinProtoVersions() const
     CDKGLogger logger(*this, __func__);
 
     std::unordered_map<uint256, int, StaticSaltedHasher> protoMap;
+    // Address families we currently have at least one connected peer in. This
+    // tells "we cannot reach that family" apart from "that member is offline".
+    bool fHaveIPv4Peer{false};
+    bool fHaveIPv6Peer{false};
     connman.ForEachNode([&](const CNode* pnode) {
+        fHaveIPv4Peer |= pnode->addr.IsIPv4();
+        fHaveIPv6Peer |= pnode->addr.IsIPv6();
         auto verifiedProRegTxHash = pnode->GetVerifiedProRegTxHash();
         if (verifiedProRegTxHash.IsNull()) {
             return;
@@ -474,21 +487,33 @@ void CDKGSession::VerifyConnectionAndMinProtoVersions() const
     });
 
     bool fShouldAllMembersBeConnected = IsAllMembersConnectedEnabled(params.type);
+    const CDKGMember* me = GetMember(myProTxHash);
     for (const auto& m : members) {
         if (m->dmn->proTxHash == myProTxHash) {
             continue;
         }
+        // A member registered in a different address family than ours is not
+        // punished for a missing connection, but only if we also have no
+        // connected peer in that family. A dual-stack node that can reach the
+        // family keeps the normal checks. The min proto version check below
+        // still applies whenever we do have a connection to the member.
+        const CService& memberAddr = m->dmn->pdmnState->addr;
+        const bool fCannotReachFamily = me != nullptr &&
+                                        IsAddressFamilyMismatch(me->dmn->pdmnState->addr, memberAddr) &&
+                                        !(memberAddr.IsIPv6() ? fHaveIPv6Peer : fHaveIPv4Peer);
         if (auto it = protoMap.find(m->dmn->proTxHash); it == protoMap.end()) {
-            m->badConnection = fShouldAllMembersBeConnected;
+            m->badConnection = fShouldAllMembersBeConnected && !fCannotReachFamily;
             if (m->badConnection) {
                 logger.Batch("%s is not connected to us, badConnection=1", m->dmn->proTxHash.ToString());
+            } else if (fShouldAllMembersBeConnected) {
+                logger.Batch("%s is not connected to us but uses an address family we cannot reach, badConnection=0", m->dmn->proTxHash.ToString());
             }
         } else if (it->second < MIN_MASTERNODE_PROTO_VERSION) {
             m->badConnection = true;
             logger.Batch("%s does not have min proto version %d (has %d)", m->dmn->proTxHash.ToString(), MIN_MASTERNODE_PROTO_VERSION, it->second);
         }
 
-        if (mmetaman->GetMetaInfo(m->dmn->proTxHash)->OutboundFailedTooManyTimes()) {
+        if (!fCannotReachFamily && mmetaman->GetMetaInfo(m->dmn->proTxHash)->OutboundFailedTooManyTimes()) {
             m->badConnection = true;
             logger.Batch("%s failed to connect to it too many times", m->dmn->proTxHash.ToString());
         }
