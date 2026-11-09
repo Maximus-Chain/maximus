@@ -32,12 +32,17 @@ soak-testing can be traced to a single cause.
   needed before SPORK_21 can be fully on for IPv6 masternodes.
 - Idea: in dkgsession.cpp, skip badConnection (both "not connected to
   us" and "failed to connect too many times") when the member's
-  registered address family differs from ours. Keep the minimum
-  protocol version check as it is.
+  registered address family differs from ours and we have no connected
+  peer in that family. A dual-stack node that can reach the family
+  keeps the normal checks. Keep the minimum protocol version check as
+  it is.
 - Limits: it only helps once most nodes have upgraded, since old nodes
   still complain. It does not create connectivity, so a dual-stack
-  member must relay between the two families. Detection of really
-  offline IPv6 nodes by IPv4 nodes gets weaker.
+  member must relay between the two families. A really offline member
+  is still caught because it sends no contribution; only the pure
+  connection check is skipped for members we cannot reach. Making
+  quorum connections and relay members address-family aware is a
+  larger change and is left for the DKG restructure.
 - Status (Nov 2026): spork active since Aug 29, ten IPv6 masternodes
   registered and valid, not confirmed running in quorums. Not yet
   reproduced on a live network. Test on testnet with a mix of
